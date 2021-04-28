@@ -44,11 +44,67 @@ library(readxl)
 
 6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
 
-```{r}
 
-skills_raw <- read_excel('data/1_skills.xlsx', sheet=4)
+# EDA
+
+```{r reading_data}
+
+skills_raw <- read_excel(here::here('data/1_skills.xlsx'), sheet=4)
 penetration_raw <- read_excel(here::here('data/2_skill_penetration.xlsx'), sheet=4)
 emp_growth_raw <- read_excel(here::here('data/3_employment_growth.xlsx'), sheet=4)
+
+
+```
+
+```{r}
+# tidy emp_growth_raw
+
+temp <- emp_growth_raw %>% select(starts_with("growth")) %>% names()
+emp_growth_raw_long <- emp_growth_raw %>%
+                          pivot_longer(cols = all_of(temp), 
+                                       names_to = "year", 
+                                       values_to = "growth_rate") %>%
+                      separate(year, into = c("temp1","temp2","year"), convert = TRUE) %>%
+                      select(-starts_with("temp"))
+head(emp_growth_raw)
+```
+
+```{r}
+#some summaries
+#joining skills and penetration data
+
+skill_penetration_common <- skills_raw %>%
+                            inner_join(penetration_raw,
+                                       by=c("year"="year",
+                                          "isic_section_index"="isic_section_index",
+                                       "isic_section_name"="isic_section_name",
+                                       "skill_group_category"="skill_group_category",
+                                       "skill_group_name"="skill_group_name",
+                                       "industry_name"="industry_name")
+                                       ) %>%
+                            select(-isic_section_index)
+
+#some summaries
+unique(skill_penetration_common$year)
+unique(skill_penetration_common$isic_section_name)
+unique(skill_penetration_common$skill_group_category)
+
+#all skills required by all industries except for mining and quarrying which does not require disruptive tech skills. soft skills importance remains same across industy sections.
+skill_penetration_common%>%ggplot()+geom_count(mapping = aes(x=isic_section_name,skill_group_category))+theme(axis.text.x = element_text(angle = 60))
+
+industry_info <- skill_penetration_common %>% select(isic_section_name,industry_name) %>%
+                  group_by(isic_section_name) %>% count(industry_name) %>% select(-n) %>%
+                  ungroup()
+
+industries <- industry_info%>%pivot_wider(id_cols= c(isic_section_name, industry_name), names_from = isic_section_name, values_from = industry_name)
+industry_info%>%ggplot()+geom_bar(aes(x=isic_section_name))+coord_flip()+labs(title = "Industry Count within each Section")
+
+skills_info <- skill_penetration_common %>% select(skill_group_category,skill_group_name) %>%
+                  group_by(skill_group_category) %>% count(skill_group_name) %>% select(-n) %>%
+                  ungroup()
+skills <- skills_info%>%pivot_wider(id_cols= c(skill_group_category, skill_group_name), names_from = skill_group_category, values_from = skill_group_name)
+skills_info%>%ggplot()+geom_bar(aes(x=skill_group_category))+coord_flip()+labs(title = "Skill Count within each Skill Category")
+
 
 
 ```
