@@ -1,0 +1,30 @@
+---
+title: "ETC1010-5510 Project - T11_Wed_skimr"
+subtitle: "A Report On The LinkedIn-World Bank Data for Development"
+author: "Hanchen Wang 30704456, Hao Li 32041594, Jiaying Zhang 30930685, Mohammed Faizan 31939872, Karan Garg 32106580"
+date: "28 April 2021"
+output: 
+  bookdown::html_document2
+keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+#QUESTIONS
+
+1) **Which skill category is most common across all Industry Sections and how does it vary between each section?**
+
+2) **How does the common skill category vary within and between industry_section according to the rank over the period of time?**
+
+3) **For each industry_section, which industry has the highest penetration rate for the most common skill_category?**
+
+4) **Find the industry_section that is best to each region/continent.**
+
+5) **Which industry_name sees the maximum growth over time in each region/continent , depending on the region’s best industry_section?**
+
+6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
+
+
+
