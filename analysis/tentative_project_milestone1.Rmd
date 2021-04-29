@@ -1,0 +1,49 @@
+---
+title: "ETC1010-5510 Project  Milestone 1 - T11_Wed_skimr"
+subtitle: "A Report On The LinkedIn-World Bank Digital Data for Development"
+author: "Hanchen Wang 30704456, Hao Li 32041594, Jiaying Zhang 30930685, Mohammed Faizan 31939872, Karan Garg 32106580"
+date: "28 April 2021"
+output: 
+  bookdown::html_document2
+keep_md: true
+---
+
+#### TUTOR: Samantha Dawson
+#### LECTURER: Patricia Menéndez
+
+# Project and Data Description
+
+## The LinkedIn-World Bank Digital Data for Development:Industry Jobs and Skills Trends
+
+"The World Bank Group and LinkedIn have created the Digital Data for Development collaboration to support innovative policy decisions as developing countries grapple with a rapidly changing global economy. With hundreds of millions of members worldwide, LinkedIn has the potential to offer a new, timely, and granular source of data about emerging industries, workers’ changing skills composition and how they’re engaging with labor markets globally." ~ [1](https://linkedindata.worldbank.org/about)
+
+This collaboration enables government and policy makers to drive better polciy implementations and thus creating opportunities to the global work force. The data represents LinkedIn members' data based on four metrics: Industry Employment Shifts, Talent Migration, Industry Skills Needs, Skills Penetration. The records in the data are spread over 140 countries having a distribution across six major industry sectors: Financial Services, Professional Services, Information & Communication Technology (ICT), the Arts & Creative Industries, Manufacturing, and Mining/Quarrying and possessing skills within the over 50,000 distinct, standardized skills classified by LinkedIn into 249 skill groups, further categorised as: Business Skills, Disruptive Tech Skills, Soft Skills, Specialized Industry Skills and Tech Skills.  
+
+In our project, we will be working on the following questions.
+
+## DATA SOURCE
+
+1) [The LinkedIn-World Bank Digital Data for Development:Industry Jobs and Skills Trends - About](https://linkedindata.worldbank.org/about)
+ 
+2) [The World Bank: Industry Skills Needs Dataset, Skill Penetration Dataset](https://datacatalog.worldbank.org/dataset/skills-linkedin-data)
+
+3) [The World Bank: Industry Employment Shifts Dataset](https://datacatalog.worldbank.org/dataset/employment-growth-linkedin-data)
+
+4) [The World Bank: Terms of Use for Datasets(CC BY 4.0)](https://www.worldbank.org/en/about/legal/terms-of-use-for-datasets)
+
+## QUESTIONS
+
+Q1) Which skill category is most common across all Industry Sections and how does it vary between each section?
+
+Q2) How does the common skill category vary within and between industry_section according to the rank over the period of time?
+
+Q3) For each industry_section, which industry has the highest penetration rate for the most common skill_category?
+
+Q4) Find the industry_section that is best to each region/continent.
+
+Q5) Which industry_name sees the maximum growth over time in each region/continent , depending on the region’s best industry_section ?
+
+Q6) For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?
+
+
+
