@@ -45,4 +45,18 @@ library(readxl)
 6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
 
 
+```{r read-data,include=FALSE}
+growth <- read.csv(here::here("data/industry-employment-growth.csv"))
+```
+
+```{r clean_data,include=FALSE}
+growth_tidy <- growth %>% 
+  pivot_longer(cols = 9:13,
+               names_to = "year",
+               values_to = "growth_rate") %>% 
+  separate(year,into=c("temp1","temp2","year"),sep = "_") %>% 
+  select(-c(temp1,temp2))
+
+  
+```
 
