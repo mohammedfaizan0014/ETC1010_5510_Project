@@ -32,17 +32,18 @@ library(readxl)
 
 #QUESTIONS
 
-1) **Which skill category is most common across all Industry Sections and how does it vary between each section?**
+Q1) Which skill category is most common across all Industry Sections and how does it vary between each section? **(Hao Li)**
 
-2) **How does the common skill category vary within and between industry_section according to the rank over the period of time?**
+Q2) What is the average percentage of net migration for each industry over the past five years and is the growth rate of immigration within the industry related to the growth rate of the industry? **(Jiaying Zhang)**
 
-3) **For each industry_section, which industry has the highest penetration rate for the most common skill_category?**
+Q3) For each industry_section, which industry has the highest penetration rate for the most common skill_category? **((Hanchen Wang)**
 
-4) **Find the industry_section that is best to each region/continent.**
+Q4) Find the industry_section that is best to each region/continent. **(Faizan & Karan)**
 
-5) **Which industry_name sees the maximum growth over time in each region/continent , depending on the region’s best industry_section?**
+Q5) Which industry_name sees the maximum growth over time in each region/continent , depending on the region’s best industry_section ? **(Mohammed Faizan)**
 
-6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
+Q6) For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation? **(Karan Garg)**
+
 
 
 # EDA
@@ -91,6 +92,9 @@ unique(skill_penetration_common$skill_group_category)
 
 #all skills required by all industries except for mining and quarrying which does not require disruptive tech skills. soft skills importance remains same across industy sections.
 skill_penetration_common%>%ggplot()+geom_count(mapping = aes(x=isic_section_name,skill_group_category))+theme(axis.text.x = element_text(angle = 60))
+```
+
+```{r }
 
 industry_info <- skill_penetration_common %>% select(isic_section_name,industry_name) %>%
                   group_by(isic_section_name) %>% count(industry_name) %>% select(-n) %>%
@@ -98,19 +102,50 @@ industry_info <- skill_penetration_common %>% select(isic_section_name,industry_
 
 industries <- industry_info%>%pivot_wider(id_cols= c(isic_section_name, industry_name), names_from = isic_section_name, values_from = industry_name)
 industry_info%>%ggplot()+geom_bar(aes(x=isic_section_name))+coord_flip()+labs(title = "Industry Count within each Section")
+```
+
+```{r}
 
 skills_info <- skill_penetration_common %>% select(skill_group_category,skill_group_name) %>%
                   group_by(skill_group_category) %>% count(skill_group_name) %>% select(-n) %>%
                   ungroup()
 skills <- skills_info%>%pivot_wider(id_cols= c(skill_group_category, skill_group_name), names_from = skill_group_category, values_from = skill_group_name)
 skills_info%>%ggplot()+geom_bar(aes(x=skill_group_category))+coord_flip()+labs(title = "Skill Count within each Skill Category")
+```
 
+```{r eda_emp_growth}
+pct_miss(emp_growth_raw_long) #no missingness
+length(unique(emp_growth_raw_long$country_name))
+unique(emp_growth_raw_long$wb_region)
+unique(emp_growth_raw_long$wb_income)
+unique(emp_growth_raw_long$isic_section_name)
+unique(emp_growth_raw_long$year)
 
+```
+
+```{r}
+
+gfun <- function(x){
+  temp <- emp_growth_raw_long%>%filter(year==x)
+  return(temp)
+}
+emp_growth_yearwise <- list(gfun(2015),gfun(2016),gfun(2017),gfun(2018),gfun(2019))
 
 ```
 
 
+```{r}
+#for each region, every year there same number of records for each industry_section
+emp_growth_raw_long%>%count(wb_region,isic_section_name,year)%>%pivot_wider(id_cols = c(year,n,wb_region,isic_section_name),names_from = year, values_from=n)
+
+emp_growth_raw_long%>%count(wb_region,isic_section_index,year)%>%ggplot()+geom_col(mapping = aes(x=isic_section_index,y=n,fill=as.character(year)),position ="dodge")+facet_wrap(~wb_region)#+theme(axis.text.x = element_blank())
+
+#presence of industries in each region
+emp_growth_raw_long %>%
+  ggplot()+geom_count(mapping=aes(x=wb_region, y=isic_section_name))+theme(axis.text.x = element_text(angle = 45))
 
 
+
+```
 
 
