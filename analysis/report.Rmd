@@ -7,11 +7,28 @@ output:
   bookdown::html_document2
 keep_md: true
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
-```
 
+#loading packages
+
+library(tidyverse) 
+library(plotly)
+library(naniar)
+library(visdat)
+library(bookdown)
+library(knitr)
+library(ggplot2)
+library(lubridate)
+library(geosphere)
+library(ggmap)
+library(ggthemes)
+library(maps)
+library(patchwork)
+library(here)
+library(readxl)
+library(readr)
+```
 #QUESTIONS
 
 1) **Which skill category is most common across all Industry Sections and how does it vary between each section?**
@@ -26,5 +43,78 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
 
+What is the average percentage of net migration for each industry over the past five years and Is the growth rate of immigration within the industry related to the growth rate of the industry?
+
+```{r read-data}
+mgindustry <- read_csv(here::here("data/migration_industry.csv"))
+growindustry<- read_csv(here::here("data/3_employment_growth.csv"))
+```
+```{r datacleaning, include=FALSE}
+mgpick<-mgindustry %>% 
+  select(isic_section_name,
+         isic_section_index,
+                net_per_10K_2015,
+                net_per_10K_2016,
+                net_per_10K_2017,
+                net_per_10K_2018,
+                net_per_10K_2019)
+growpick<-growindustry %>% 
+  select(isic_section_name, 
+         isic_section_index,
+                growth_rate_2015,
+                growth_rate_2016,
+                growth_rate_2017,
+                growth_rate_2018,
+                growth_rate_2019)
+
+```
+#average percentage of net migration for each industry over the past five years
+
+```{r mgdatause}
+mguse<- mgpick %>% 
+   rename(c("2015"= "net_per_10K_2015",
+           "2016"= "net_per_10K_2016",
+           "2017"= "net_per_10K_2017",
+           "2018"= "net_per_10K_2018",
+           "2019"= "net_per_10K_2019",
+           "industry_section" = "isic_section_name",
+           )) %>% 
+    pivot_longer(cols = 3:7,  
+               names_to = "year",            
+               values_to = "net_migration_rate") %>% 
+ mutate(migration_year= year) %>% 
+  mutate(migration_section_index=isic_section_index) %>% 
+ unite("industry_year", isic_section_index, year) 
+```
+
+```{r visualmg}
+ggplot(mguse, mapping = aes(x = migration_year, 
+                            y = net_migration_rate,
+                            color= migration_section_index)) +   
+  geom_point()
+```
+  
+#Is the growth rate of immigration within the industry related to the growth rate of the industry?
+
+```{r relationdata}
+growuse<- growpick %>% 
+   rename(c("2015"= "growth_rate_2015",
+           "2016"= "growth_rate_2016",
+           "2017"= "growth_rate_2017",
+           "2018"= "growth_rate_2018",
+           "2019"= "growth_rate_2019",
+           "industry_section" = "isic_section_name",
+           )) %>% 
+    pivot_longer(cols = 3:7,  
+               names_to = "year",            
+               values_to = "growth_rate") %>% 
+ mutate(grow_year= year) %>% 
+  mutate(grow_section_index=isic_section_index) %>% 
+ unite("industry_year", isic_section_index, year)
+```
+```{r full}
+fulljoin<- mgjoin %>% 
+  left_join(growjoin, by="industry_year")
+```
 
 
