@@ -33,34 +33,25 @@ library(readr)
 
 1) **Which skill category is most common across all Industry Sections and how does it vary between each section?**
 
-2) **How does the common skill category vary within and between industry_section according to the rank over the period of time?**
-
-3) **For each industry_section, which industry has the highest penetration rate for the most common skill_category?**
-
-4) **Find the industry_section that is best to each region/continent.**
-
-5) **Which industry_name sees the maximum growth over time in each region/continent , depending on the region’s best industry_section?**
-
-6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
-
-What is the average percentage of net migration for each industry over the past five years and Is the growth rate of immigration within the industry related to the growth rate of the industry?
-
+2) **What is the average percentage of net migration for each industry over the past five years and Is the growth rate of immigration within the industry related to the growth rate of the industry?**
 ```{r read-data}
 mgindustry <- read_csv(here::here("data/migration_industry.csv"))
 growindustry<- read_csv(here::here("data/3_employment_growth.csv"))
 ```
 ```{r datacleaning, include=FALSE}
-mgpick<-mgindustry %>% 
-  select(isic_section_name,
+mgpick <- mgindustry %>% 
+  select(industry_name,
+         industry_id,
          isic_section_index,
+         isic_section_name,
                 net_per_10K_2015,
                 net_per_10K_2016,
                 net_per_10K_2017,
                 net_per_10K_2018,
                 net_per_10K_2019)
-growpick<-growindustry %>% 
-  select(isic_section_name, 
-         isic_section_index,
+growpick <- growindustry %>% 
+  select(industry_name, 
+         industry_id,
                 growth_rate_2015,
                 growth_rate_2016,
                 growth_rate_2017,
@@ -77,44 +68,87 @@ mguse<- mgpick %>%
            "2017"= "net_per_10K_2017",
            "2018"= "net_per_10K_2018",
            "2019"= "net_per_10K_2019",
-           "industry_section" = "isic_section_name",
-           )) %>% 
-    pivot_longer(cols = 3:7,  
+           "industry" = "industry_name",
+           "industry_section"= "isic_section_index",
+           "section_name" = "isic_section_name")) %>% 
+    pivot_longer(cols = 5:9,  
                names_to = "year",            
                values_to = "net_migration_rate") %>% 
- mutate(migration_year= year) %>% 
-  mutate(migration_section_index=isic_section_index) %>% 
- unite("industry_year", isic_section_index, year) 
+ mutate(migration_year= year,
+        migration_industry_id = industry_id) %>% 
+ unite("industry_year", migration_industry_id, year)
+```
+```{r mgave}
+mgave <- mguse %>% 
+  group_by(industry_year) %>% 
+  summarise(average_migration_rate = mean(net_migration_rate, na.rm = TRUE),
+            industry_section_index = industry_section) 
+```
+```{r mgfinal}
+mgfinal <- mgave %>% separate(industry_year,
+           c("industry","year"), "_") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  group_by(industry_section_index)
 ```
 
 ```{r visualmg}
-ggplot(mguse, mapping = aes(x = migration_year, 
-                            y = net_migration_rate,
-                            color= migration_section_index)) +   
-  geom_point()
+mgfinal %>% 
+ggplot(aes(industry_section_index,
+       average_migration_rate)) +   
+  geom_boxplot()
 ```
+
   
 #Is the growth rate of immigration within the industry related to the growth rate of the industry?
 
 ```{r relationdata}
-growuse<- growpick %>% 
+growuse <- growpick %>% 
    rename(c("2015"= "growth_rate_2015",
            "2016"= "growth_rate_2016",
            "2017"= "growth_rate_2017",
            "2018"= "growth_rate_2018",
-           "2019"= "growth_rate_2019",
-           "industry_section" = "isic_section_name",
+           "2019"= "growth_rate_2019"
            )) %>% 
     pivot_longer(cols = 3:7,  
                names_to = "year",            
                values_to = "growth_rate") %>% 
- mutate(grow_year= year) %>% 
-  mutate(grow_section_index=isic_section_index) %>% 
- unite("industry_year", isic_section_index, year)
+ unite("industry_year", industry_id, year)
+growclean <- growuse %>% 
+  mutate(growth_rate = str_sub(growuse$growth_rate,start = 1, end = -2))%>% 
+  mutate(growth_rate = as.numeric(growth_rate)) %>% 
+  na.omit()
+```
+
+```{r growave}
+growave <- growclean %>% 
+  group_by(industry_year) %>% 
+summarise(average_grow_rate = mean(growth_rate, na.rm = TRUE))
 ```
 ```{r full}
-fulljoin<- mgjoin %>% 
-  left_join(growjoin, by="industry_year")
+fulldata<- mgave %>% 
+  inner_join(growave, by="industry_year")
 ```
+
+```{r finaldata}
+cleandata <- fulldata %>% separate(industry_year,
+           c("industry_section","year"), "_") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  unique()
+```
+
+```{r}
+ggplot(data = cleandata, 
+       aes(x = cleandata$average_migration_rate, y = cleandata$average_grow_rate)) +   
+  geom_point() +   
+  geom_smooth(method = "lm")
+```
+
+3) **For each industry_section, which industry has the highest penetration rate for the most common skill_category?**
+
+4) **Find the industry_section that is best to each region/continent.**
+
+5) **Which industry_name sees the maximum growth over time in each region/continent , depending on the region’s best industry_section?**
+
+6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
 
 
