@@ -91,14 +91,6 @@ mgfinal <- mgave %>% separate(industry_year,
   group_by(industry_section_index)
 ```
 
-```{r visualmg}
-mgfinal %>% 
-ggplot(aes(industry_section_index,
-       average_migration_rate)) +   
-  geom_boxplot()
-```
-
-  
 #Is the growth rate of immigration within the industry related to the growth rate of the industry?
 
 ```{r relationdata}
@@ -134,13 +126,6 @@ cleandata <- fulldata %>% separate(industry_year,
            c("industry_section","year"), "_") %>% 
   mutate(year = as.numeric(year)) %>% 
   unique()
-```
-
-```{r}
-ggplot(data = cleandata, 
-       aes(x = cleandata$average_migration_rate, y = cleandata$average_grow_rate)) +   
-  geom_point() +   
-  geom_smooth(method = "lm")
 ```
 
 3) **For each industry_section, which industry has the highest penetration rate for the most common skill_category?**
