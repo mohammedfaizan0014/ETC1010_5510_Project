@@ -60,3 +60,7 @@ growth_tidy <- growth %>%
   
 ```
 
+```{r write-data}
+write.csv(growth,here::here("data/industry-employment-growth-cleaned.csv"))
+```
+
