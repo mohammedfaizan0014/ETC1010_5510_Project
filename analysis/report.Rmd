@@ -61,6 +61,11 @@ growth_tidy <- growth %>%
 ```
 
 ```{r write-data}
-write.csv(growth,here::here("data/industry-employment-growth-cleaned.csv"))
+write.csv(growth_tidy,here::here("data/industry-employment-growth-cleaned.csv"))
 ```
 
+# Data Descripion
+
+This Data describes the Industry wise Employement growth across the years from 2015-2019. It further showcases the growth rate depending upon various variables such as Country, Region/Continentm, Industry Section and within each section variioous Industries.
+
+The dimensions of the cleaned data set are 36675 X 10.
