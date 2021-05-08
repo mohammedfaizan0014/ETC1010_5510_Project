@@ -1,17 +1,39 @@
 ---
-title: "my Q1"
-author: "HaoLi"
-date: "5/7/2021"
-output: pdf_document
+title: "ETC1010-5510 Project - T11_Wed_skimr"
+subtitle: "A Report On The LinkedIn-World Bank Data for Development"
+author: "Hanchen Wang 30704456, Hao Li 32041594, Jiaying Zhang 30930685, Mohammed Faizan 31939872, Karan Garg 32106580"
+date: "28 April 2021"
+output: 
+  bookdown::html_document2
+keep_md: true
 ---
-
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F, message = F, warning = F)
-library(ggplot2)
-library(tidyverse)
-library(readxl)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
+#loading packages
+
+library(tidyverse) 
+library(plotly)
+library(naniar)
+library(visdat)
+library(bookdown)
+library(knitr)
+library(ggplot2)
+library(lubridate)
+library(geosphere)
+library(ggmap)
+library(ggthemes)
+library(maps)
+library(patchwork)
+library(here)
+library(readxl)
+library(readr)
 ```
+#QUESTIONS
+
+1) **Which skill category is most common across all Industry Sections and how does it vary between each section?**
+
+
 ##data description: The data is about what skills are needed most in different industries
 ## Question1. Which skill category is most common across all Industry Sections and how does it vary between each section? 
 
@@ -75,3 +97,14 @@ ggplot(section_topn2, aes(x = isic_section_name, y = n, fill = skill_group_categ
   geom_text(position = position_fill(vjust = .5)) + ggtitle('Skill Category Distribution by Industry Section')+ylab('percent')+xlab('Industry Section')+scale_fill_manual(values = skillColors)+coord_flip()
 ```
 The above 100% stacked bar chart shows the skill category distribution within each industry section. While 4 out of 6 industry sections have a similar skill category distribution, Financial & Insurance Activities and Arts, Entertainment & Recreation have a rather different skill category distribution. Business skills are greatly needed (61%) while Tech skills are much less needed comparably for Financial industry. Specialized skills(53%) and Tech skills(24%) are majorly needed for Arts and Entertainment industry while Business skills (6%) and Disruptive Tech skills (0)are the least needed types for the industry section. 
+
+2) **What is the average percentage of net migration for each industry over the past five years and Is the growth rate of immigration within the industry related to the growth rate of the industry?**
+
+3) **For each industry_section, which industry has the highest penetration rate for the most common skill_category?**
+
+4) **Find the industry_section that is best to each region/continent.**
+
+5) **Which industry_name sees the maximum growth over time in each region/continent , depending on the region’s best industry_section?**
+
+6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
+
