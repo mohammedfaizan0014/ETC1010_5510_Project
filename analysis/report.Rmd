@@ -9,8 +9,14 @@ keep_md: true
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+<<<<<<< HEAD
 #loading packages
 
+=======
+
+#loading packages
+
+>>>>>>> Jiaying
 library(tidyverse) 
 library(plotly)
 library(naniar)
@@ -32,6 +38,7 @@ library(readr)
 
 1) **Which skill category is most common across all Industry Sections and how does it vary between each section?**
 
+<<<<<<< HEAD
 
 ##data description: The data is about what skills are needed most in different industries
 ## Question1. Which skill category is most common across all Industry Sections and how does it vary between each section? 
@@ -98,6 +105,102 @@ ggplot(section_topn2, aes(x = isic_section_name, y = n, fill = skill_group_categ
 The above 100% stacked bar chart shows the skill category distribution within each industry section. While 4 out of 6 industry sections have a similar skill category distribution, Financial & Insurance Activities and Arts, Entertainment & Recreation have a rather different skill category distribution. Business skills are greatly needed (61%) while Tech skills are much less needed comparably for Financial industry. Specialized skills(53%) and Tech skills(24%) are majorly needed for Arts and Entertainment industry while Business skills (6%) and Disruptive Tech skills (0)are the least needed types for the industry section. 
 
 2) **What is the average percentage of net migration for each industry over the past five years and Is the growth rate of immigration within the industry related to the growth rate of the industry?**
+=======
+2) **What is the average percentage of net migration for each industry over the past five years and Is the growth rate of immigration within the industry related to the growth rate of the industry?**
+```{r read-data}
+mgindustry <- read_csv(here::here("data/migration_industry.csv"))
+growindustry<- read_csv(here::here("data/3_employment_growth.csv"))
+```
+```{r datacleaning, include=FALSE}
+mgpick <- mgindustry %>% 
+  select(industry_name,
+         industry_id,
+         isic_section_index,
+         isic_section_name,
+                net_per_10K_2015,
+                net_per_10K_2016,
+                net_per_10K_2017,
+                net_per_10K_2018,
+                net_per_10K_2019)
+growpick <- growindustry %>% 
+  select(industry_name, 
+         industry_id,
+                growth_rate_2015,
+                growth_rate_2016,
+                growth_rate_2017,
+                growth_rate_2018,
+                growth_rate_2019)
+
+```
+#average percentage of net migration for each industry over the past five years
+
+```{r mgdatause}
+mguse<- mgpick %>% 
+   rename(c("2015"= "net_per_10K_2015",
+           "2016"= "net_per_10K_2016",
+           "2017"= "net_per_10K_2017",
+           "2018"= "net_per_10K_2018",
+           "2019"= "net_per_10K_2019",
+           "industry" = "industry_name",
+           "industry_section"= "isic_section_index",
+           "section_name" = "isic_section_name")) %>% 
+    pivot_longer(cols = 5:9,  
+               names_to = "year",            
+               values_to = "net_migration_rate") %>% 
+ mutate(migration_year= year,
+        migration_industry_id = industry_id) %>% 
+ unite("industry_year", migration_industry_id, year)
+```
+```{r mgave}
+mgave <- mguse %>% 
+  group_by(industry_year) %>% 
+  summarise(average_migration_rate = mean(net_migration_rate, na.rm = TRUE),
+            industry_section_index = industry_section) 
+```
+```{r mgfinal}
+mgfinal <- mgave %>% separate(industry_year,
+           c("industry","year"), "_") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  group_by(industry_section_index)
+```
+
+#Is the growth rate of immigration within the industry related to the growth rate of the industry?
+
+```{r relationdata}
+growuse <- growpick %>% 
+   rename(c("2015"= "growth_rate_2015",
+           "2016"= "growth_rate_2016",
+           "2017"= "growth_rate_2017",
+           "2018"= "growth_rate_2018",
+           "2019"= "growth_rate_2019"
+           )) %>% 
+    pivot_longer(cols = 3:7,  
+               names_to = "year",            
+               values_to = "growth_rate") %>% 
+ unite("industry_year", industry_id, year)
+growclean <- growuse %>% 
+  mutate(growth_rate = str_sub(growuse$growth_rate,start = 1, end = -2))%>% 
+  mutate(growth_rate = as.numeric(growth_rate)) %>% 
+  na.omit()
+```
+
+```{r growave}
+growave <- growclean %>% 
+  group_by(industry_year) %>% 
+summarise(average_grow_rate = mean(growth_rate, na.rm = TRUE))
+```
+```{r full}
+fulldata<- mgave %>% 
+  inner_join(growave, by="industry_year")
+```
+
+```{r finaldata}
+cleandata <- fulldata %>% separate(industry_year,
+           c("industry_section","year"), "_") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  unique()
+```
+>>>>>>> Jiaying
 
 3) **For each industry_section, which industry has the highest penetration rate for the most common skill_category?**
 
@@ -107,3 +210,7 @@ The above 100% stacked bar chart shows the skill category distribution within ea
 
 6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> Jiaying
