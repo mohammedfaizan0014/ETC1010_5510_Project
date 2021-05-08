@@ -1,30 +1,77 @@
 ---
-title: "ETC1010-5510 Project - T11_Wed_skimr"
-subtitle: "A Report On The LinkedIn-World Bank Data for Development"
-author: "Hanchen Wang 30704456, Hao Li 32041594, Jiaying Zhang 30930685, Mohammed Faizan 31939872, Karan Garg 32106580"
-date: "28 April 2021"
-output: 
-  bookdown::html_document2
-keep_md: true
+title: "my Q1"
+author: "HaoLi"
+date: "5/7/2021"
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+
 ```
 
-#QUESTIONS
+## Question1. Which skill category is most common across all Industry Sections and how does it vary between each section? 
 
-1) **Which skill category is most common across all Industry Sections and how does it vary between each section?**
+The most common skill category across different sections is Business Skills. 
 
-2) **How does the common skill category vary within and between industry_section according to the rank over the period of time?**
+```{r, fig.width=5,fig.height=4}
+mydat <- read_excel('read-only_Q1.xlsx', 
+                    sheet = 'Industry Skills Needs')
 
-3) **For each industry_section, which industry has the highest penetration rate for the most common skill_category?**
+mydat$industry_name <- as.factor(mydat$industry_name)
+mydat$isic_section_name <- as.factor(mydat$isic_section_name)
+mydat$skill_group_category <- as.factor(mydat$skill_group_category)
 
-4) **Find the industry_section that is best to each region/continent.**
+##TABLES:
+#skill category frequency by industry section:
+mydat %>% 
+  group_by(isic_section_name) %>%
+  count(mydat$skill_group_category) %>% arrange(desc(n))
 
-5) **Which industry_name sees the maximum growth over time in each region/continent , depending on the region’s best industry_section?**
+#top 1 skill in every industry section:
+section_top1 <- mydat %>% 
+  count(isic_section_name,skill_group_category ) %>%
+  arrange(desc(n)) %>% 
+  group_by(isic_section_name) %>% 
+  slice(seq_len(1)) 
 
-6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
+##PLOTS:
+#set consistent color scheme:
+skillColors <-
+  setNames( c('wheat4', 'coral', 'azure','lightpink4','thistle4')
+            , levels(mydat$skill_group_category)  )
 
+#plot bar chart across inductry section:
+ggplot(section_top1, mapping = aes(x=isic_section_name,y=n,fill=skill_group_category))+geom_bar(stat = 'identity')+xlab('Industry Section')+ylab('Frequency')+ggtitle('Most Common Skill Category by Industry Section')+scale_fill_manual(values = skillColors)+coord_flip()
+```
 
+From the bar chart above, we can see the most common skill category within each industry section. Specialized Industry Skills are the most common skill category in 4 out of 6 industry sections. Tech skills are the most common within Information and Communication, Business Skills are the most common within Financial and Insurance Activities. 
 
+```{r,fig.width=5,fig.height=4}
+#skill category frequency by industry section - descending order:
+section_topn <- mydat %>% 
+  count(isic_section_name,skill_group_category ) %>%
+  arrange(desc(n)) %>% 
+  group_by(isic_section_name) %>% 
+  slice(seq_len(5)) 
+
+#Get the levels for type in the required order
+section_topn2 <- arrange(section_topn,desc(skill_group_category))
+
+#Calculate the percentages
+library(plyr)
+section_topn2 <- ddply(section_topn2,.(isic_section_name),transform, percent = n/sum(n) * 100)
+
+#Format the labels and calculate their positions
+section_topn2  = ddply(section_topn2,.(isic_section_name),transform, pos = (cumsum(n) - 0.5 * n))
+section_topn2$label = paste0(sprintf("%.0f", section_topn2$percent), "%")
+
+#Plot
+ggplot(section_topn2, aes(x = isic_section_name, y = n, fill = skill_group_category, label=label)) +
+  geom_bar(stat = 'identity', position = position_fill()) +
+  geom_text(position = position_fill(vjust = .5)) + ggtitle('Skill Category Distribution by Industry Section')+ylab('percent')+xlab('Industry Section')+scale_fill_manual(values = skillColors)+coord_flip()
+```
+The above 100% stacked bar chart shows the skill category distribution within each industry section. While 4 out of 6 industry sections have a similar skill category distribution, Financial & Insurance Activities and Arts, Entertainment & Recreation have a rather different skill category distribution. Business skills are greatly needed (61%) while Tech skills are much less needed comparably for Financial industry. Specialized skills(53%) and Tech skills(24%) are majorly needed for Arts and Entertainment industry while Business skills (6%) and Disruptive Tech skills (0)are the least needed types for the industry section. 
