@@ -12,13 +12,13 @@ library(tidyverse)
 library(readxl)
 
 ```
-
+##data description: The data is about what skills are needed most in different industries
 ## Question1. Which skill category is most common across all Industry Sections and how does it vary between each section? 
 
 The most common skill category across different sections is Business Skills. 
 
-```{r, fig.width=5,fig.height=4}
-mydat <- read_excel('read-only_Q1.xlsx', 
+```{r, fig.width=8,fig.height=4}
+mydat <- read_excel('5510public_use-industry-skills-needs clean.xlsx', 
                     sheet = 'Industry Skills Needs')
 
 mydat$industry_name <- as.factor(mydat$industry_name)
@@ -50,7 +50,7 @@ ggplot(section_top1, mapping = aes(x=isic_section_name,y=n,fill=skill_group_cate
 
 From the bar chart above, we can see the most common skill category within each industry section. Specialized Industry Skills are the most common skill category in 4 out of 6 industry sections. Tech skills are the most common within Information and Communication, Business Skills are the most common within Financial and Insurance Activities. 
 
-```{r,fig.width=5,fig.height=4}
+```{r,fig.width=9,fig.height=4}
 #skill category frequency by industry section - descending order:
 section_topn <- mydat %>% 
   count(isic_section_name,skill_group_category ) %>%
