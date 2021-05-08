@@ -42,10 +42,6 @@ Q4) Find the industry_section that is best to each region/continent. **(Faizan &
 
 Q5) Which industry_name sees the maximum growth over time in each region/continent , depending on the region’s best industry_section ? **(Mohammed Faizan)**
 
-Q6) For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation? **(Karan Garg)**
-
-
-
 # EDA
 
 ```{r reading_data}
@@ -148,4 +144,6 @@ emp_growth_raw_long %>%
 
 ```
 
+
+Q6) For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation? **(Karan Garg)**
 
