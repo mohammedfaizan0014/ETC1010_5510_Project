@@ -307,5 +307,30 @@ emp_growth_raw_long %>%
 
 ```
 
+
 Q6) For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation? **(Karan Garg)**
 
+```{r read-data,include=FALSE}
+growth <- read.csv(here::here("data/industry-employment-growth.csv"))
+```
+
+```{r clean_data,include=FALSE}
+growth_tidy <- growth %>% 
+  pivot_longer(cols = 9:13,
+               names_to = "year",
+               values_to = "growth_rate") %>% 
+  separate(year,into=c("temp1","temp2","year"),sep = "_") %>% 
+  select(-c(temp1,temp2))
+
+  
+```
+
+```{r write-data}
+write.csv(growth_tidy,here::here("data/industry-employment-growth-cleaned.csv"))
+```
+
+# Data Descripion
+
+This Data describes the Industry wise Employement growth across the years from 2015-2019. It further showcases the growth rate depending upon various variables such as Country, Region/Continentm, Industry Section and within each section variioous Industries.
+
+The dimensions of the cleaned data set are 36675 X 10.
