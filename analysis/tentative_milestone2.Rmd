@@ -341,7 +341,8 @@ This data describes the industry wise employment growth across the years, 2015 t
 The dimensions of the cleaned data set are 36675 X 10.
 
 ```{r 6_read-data,include=FALSE}
-growth <- read.csv(here::here("data/industry-employment-growth.csv"))
+growth <- read_excel(here::here('data/4_employment_growth.xlsx'), sheet=4)
+
 ```
 
 ```{r 6_clean_data,include=FALSE}
@@ -356,7 +357,7 @@ growth_tidy <- growth %>%
 ```
 
 ```{r write-data}
-write.csv(growth_tidy,here::here("data/industry-employment-growth-cleaned.csv"))
+write.csv(growth_tidy,here::here("data/6_employment_growth_clean.csv"))
 ```
 
 # References
