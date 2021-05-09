@@ -84,8 +84,8 @@ In the first part of the question, I used the data in migration_industry data an
 In the second part of the question, I combined migration_industry data with 4_employment_growth data to study whether the number of immigrants in an industry is related to industry development. I chose industry name, industry code and industry net growth per year. As above, I extracted the year and combined it with the industry code as the key to connect both data and then changed year to a numerical variable and then I get the 2_migrationInd_growth_clean2 (380 * 5).
 
 ```{r mg_grow_read_data}
-mgindustry <- read_csv(here::here("data/migration_industry.csv"))
-growindustry<- read_excel(here::here('data/4_employment_growth.xlsx'), sheet=4)
+mgindustry <- read_csv(here::here("data/2_migration_industry.csv"))
+growindustry<- read_excel(here::here('data/456_employment_growth.xlsx'), sheet=4)
 ```
 ```{r 2_datacleaning, include=FALSE}
 mgpick <- mgindustry %>% 
@@ -180,7 +180,7 @@ cleandata <- fulldata %>% separate(industry_year,
 ```
 
 ```{r}
-write.csv(mgfinal, here::here("data/2_migrationInd_growth_clean1.csv"))
+write.csv(mgfinal, here::here("data/2_migration_industry_clean1.csv"))
 write.csv(cleandata, here::here("data/2_migrationInd_growth_clean2.csv"))
 ```
 
@@ -225,13 +225,11 @@ write.csv(penetration_clean, here::here("data/3_skill_penetration_clean.csv"))
 
 4) **Find the industry_section that is best to each region/continent.** **(Faizan and Karan)**
 
-5) **Which industry_name sees the maximum growth over time in each region/continent, depending on the region’s best industry_section ?** **(Mohammed Faizan)**
+```{r}
+emp_growth_raw <- read_excel(here::here('data/456_employment_growth.xlsx'), sheet=4)
 
-```{r 5_reading_data}
-skills_raw <- read_excel(here::here('data/1_skills.xlsx'), sheet=4)
-penetration_raw <- read_excel(here::here('data/3_skill_penetration.xlsx'), sheet=4)
-emp_growth_raw <- read_excel(here::here('data/4_employment_growth.xlsx'), sheet=4)
 ```
+
 ```{r emp_growth_long}
 # tidy emp_growth_raw
 temp <- emp_growth_raw %>% select(starts_with("growth")) %>% names()
@@ -243,9 +241,8 @@ emp_growth_raw_long <- emp_growth_raw %>%
                       select(-starts_with("temp"))
 ```
 ```{r}
-write.csv(emp_growth_raw_long, here::here("data/4_employment_growth_clean"))
+write.csv(emp_growth_raw_long, here::here("data/456_employment_growth_clean"))
 ```
-
 
 The employment growth data represents the overall rate of change of employment between a pair of consecutive years for an industry, across 2015 to 2019. This rate of change is called "growth rate" which is measured by the percentage change in the number of employees for that industry .The sample of LinkedIn members is limited to those that have a company registered on LinkedIn on their profile. For a year, the number of employees working in an industry is the cumulative sum of the shift in the employed industry of the LinkedIn members, that is,the sum of the linked profiles with no shift in industry and the difference of the number of employees entering that industry and the number of employees leaving that industry. For example, if an industry has for the year 2014, 1000 employees and 100 employees enter this industry and 50 employees leave this industry in 2015, then the number of employees in this industry for the year 2015 is 1000 + 100 - 50 and the growth rate in 2015 is 0.05%. The formula for growth rate is, 
 \begin{equation}
@@ -253,6 +250,14 @@ growth rate = (membercount_i-membercount_j/membercount_i)*100
 \end{equation}
 
 The growth is described with respect to variables such as, `r knitr::combine_words(as.vector(emp_growth_raw_long%>%names()))`. However, the original data is in a wider format with growth rates for different years represented in the same row. As such, in accordance with the tidy data definition, the data was transformed into longer format and hence cleaned. For the question, records are filtered for the appropriate industry section for each region and then analysis is being done for industries within that section.
+
+5) **Which industry_name sees the maximum growth over time in each region/continent, depending on the region’s best industry_section ?** **(Mohammed Faizan)**
+
+```{r 5_reading_data}
+skills_raw <- read_excel(here::here('data/1_skills.xlsx'), sheet=4)
+penetration_raw <- read_excel(here::here('data/3_skill_penetration.xlsx'), sheet=4)
+
+```
 
 ```{r eval=FALSE}
 knitr::kable(emp_growth_raw_long%>%head(5), caption = "Employment Growth Data")
@@ -276,7 +281,6 @@ gfun <- function(x){
 }
 emp_growth_yearwise <- list(gfun(2015),gfun(2016),gfun(2017),gfun(2018),gfun(2019))
 ```
-
 
 ```{r include=FALSE}
 #for each region, every year there same number of records for each industry_section
@@ -336,12 +340,8 @@ skills_info%>%ggplot()+geom_bar(aes(x=skill_group_category))+coord_flip()+labs(t
 6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?** **(Karan Garg)**
 
 
-This data describes the industry wise employment growth across the years, 2015 to 2019. It further showcases the growth rate across variables such as Country, Region/Continent, Industry Section and  Industries. The tidy data definition states that, a data set is called tidy, when "each variable is in its own column, each observation is in its own row and each value is in its own cell". In accordance with the tidy data statement,the employment growth dataset is in the wide format and values like Year given in separate columns and the **growth rate** of different years given in the same row. To make the data clean we used functions like **pivot_longer** and **separate** to clean the data and transform it into tidy data.
-
-The dimensions of the cleaned data set are 36675 X 10.
-
 ```{r 6_read-data,include=FALSE}
-growth <- read_excel(here::here('data/4_employment_growth.xlsx'), sheet=4)
+growth <- read_excel(here::here('data/456_employment_growth.xlsx'), sheet=4)
 
 ```
 
@@ -356,14 +356,11 @@ growth_tidy <- growth %>%
   
 ```
 
-```{r write-data}
-write.csv(growth_tidy,here::here("data/6_employment_growth_clean.csv"))
-```
+
 
 # References
 
-
-## Data Source
+## Data Source {-}
 
 1) [The LinkedIn-World Bank Digital Data for Development:Industry Jobs and Skills Trends - About](https://linkedindata.worldbank.org/about)
  
@@ -374,9 +371,6 @@ write.csv(growth_tidy,here::here("data/6_employment_growth_clean.csv"))
 4) [The World Bank: Industry Employment Shifts Dataset(7335 X 13)](https://datacatalog.worldbank.org/dataset/employment-growth-linkedin-data)
 
 5) [The World Bank: Terms of Use for Datasets(CC BY 4.0)](https://www.worldbank.org/en/about/legal/terms-of-use-for-datasets)
-
-"License- The aggregated datasets and visuals are available to all for the public good under the Creative Commons Attribution 3.0 IGO license with attribution to both LinkedIn Corporation and the World Bank. The World Bank Group and LinkedIn Corporation (including its affiliates) do not take responsibility and are not liable for any damage caused through use of data and insights through this website, including any indirect, special, incidental or consequential damages."
-
 
 <div id="refs"></div>
 

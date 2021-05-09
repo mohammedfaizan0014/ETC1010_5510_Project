@@ -225,25 +225,23 @@ In the second part of the question, I combined migration_industry data with 4_em
 <p>“2_skill_penetration.csv” is the data showing skill profiles for each global industry and penetration of LinkedIn skill groups at the global industry level from 2015 to 2019, in which penetration means the weight of one skill occupied each industry.</p>
 <p>The old data (“2_skill_penetration.csv”) is 30,740 × 7 variables and the cleaned clean data (“2_skill_penetration_clean.csv”) is 4156 × 9.</p>
 <ol start="4" style="list-style-type: decimal">
-<li><p><strong>Find the industry_section that is best to each region/continent.</strong> <strong>(Faizan and Karan)</strong></p></li>
-<li><p><strong>Which industry_name sees the maximum growth over time in each region/continent, depending on the region’s best industry_section ?</strong> <strong>(Mohammed Faizan)</strong></p></li>
+<li><strong>Find the industry_section that is best to each region/continent.</strong> <strong>(Faizan and Karan)</strong></li>
 </ol>
 <p>The employment growth data represents the overall rate of change of employment between a pair of consecutive years for an industry, across 2015 to 2019. This rate of change is called “growth rate” which is measured by the percentage change in the number of employees for that industry .The sample of LinkedIn members is limited to those that have a company registered on LinkedIn on their profile. For a year, the number of employees working in an industry is the cumulative sum of the shift in the employed industry of the LinkedIn members, that is,the sum of the linked profiles with no shift in industry and the difference of the number of employees entering that industry and the number of employees leaving that industry. For example, if an industry has for the year 2014, 1000 employees and 100 employees enter this industry and 50 employees leave this industry in 2015, then the number of employees in this industry for the year 2015 is 1000 + 100 - 50 and the growth rate in 2015 is 0.05%. The formula for growth rate is,
 <span class="math display">\[\begin{equation}
 growth rate = (membercount_i-membercount_j/membercount_i)*100
 \end{equation}\]</span></p>
 <p>The growth is described with respect to variables such as, country_code, country_name, wb_region, wb_income, isic_section_index, isic_section_name, industry_id, industry_name, year, and growth_rate. However, the original data is in a wider format with growth rates for different years represented in the same row. As such, in accordance with the tidy data definition, the data was transformed into longer format and hence cleaned. For the question, records are filtered for the appropriate industry section for each region and then analysis is being done for industries within that section.</p>
-<ol start="6" style="list-style-type: decimal">
-<li><strong>For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?</strong> <strong>(Karan Garg)</strong></li>
+<ol start="5" style="list-style-type: decimal">
+<li><p><strong>Which industry_name sees the maximum growth over time in each region/continent, depending on the region’s best industry_section ?</strong> <strong>(Mohammed Faizan)</strong></p></li>
+<li><p><strong>For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?</strong> <strong>(Karan Garg)</strong></p></li>
 </ol>
-<p>This data describes the industry wise employment growth across the years, 2015 to 2019. It further showcases the growth rate across variables such as Country, Region/Continent, Industry Section and Industries. The tidy data definition states that, a data set is called tidy, when “each variable is in its own column, each observation is in its own row and each value is in its own cell”. In accordance with the tidy data statement,the employment growth dataset is in the wide format and values like Year given in separate columns and the <strong>growth rate</strong> of different years given in the same row. To make the data clean we used functions like <strong>pivot_longer</strong> and <strong>separate</strong> to clean the data and transform it into tidy data.</p>
-<p>The dimensions of the cleaned data set are 36675 X 10.</p>
 </div>
 </div>
 <div id="references" class="section level1" number="2">
 <h1><span class="header-section-number">2</span> References</h1>
-<div id="data-source" class="section level2" number="2.1">
-<h2><span class="header-section-number">2.1</span> Data Source</h2>
+<div id="data-source" class="section level2 unnumbered">
+<h2>Data Source</h2>
 <ol style="list-style-type: decimal">
 <li><p><a href="https://linkedindata.worldbank.org/about">The LinkedIn-World Bank Digital Data for Development:Industry Jobs and Skills Trends - About</a></p></li>
 <li><p><a href="https://datacatalog.worldbank.org/dataset/skills-linkedin-data">The World Bank: Industry Skills Needs Dataset(3500 X 7), Skill Penetration Dataset(20780 X 7)</a></p></li>
@@ -251,7 +249,6 @@ growth rate = (membercount_i-membercount_j/membercount_i)*100
 <li><p><a href="https://datacatalog.worldbank.org/dataset/employment-growth-linkedin-data">The World Bank: Industry Employment Shifts Dataset(7335 X 13)</a></p></li>
 <li><p><a href="https://www.worldbank.org/en/about/legal/terms-of-use-for-datasets">The World Bank: Terms of Use for Datasets(CC BY 4.0)</a></p></li>
 </ol>
-<p>“License- The aggregated datasets and visuals are available to all for the public good under the Creative Commons Attribution 3.0 IGO license with attribution to both LinkedIn Corporation and the World Bank. The World Bank Group and LinkedIn Corporation (including its affiliates) do not take responsibility and are not liable for any damage caused through use of data and insights through this website, including any indirect, special, incidental or consequential damages.”</p>
 <div id="refs">
 
 </div>
