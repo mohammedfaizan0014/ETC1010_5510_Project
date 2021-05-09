@@ -198,7 +198,45 @@ cleandata <- fulldata %>% separate(industry_year,
   unique()
 ```
 
-3) **For each industry_section, which industry has the highest penetration rate for the most common skill_category?**
+3) **For each common skill_category, which industry has the highest penetration rate and what is the change of the common skill penetration rate over the period of time?**
+
+
+# Data Descripion
+
+“2_skill_penetration.csv” is the data showing skill profiles for each global industry and penetration of LinkedIn skill groups at the global industry level from 2015 to 2019, which penetration means the weight of one skill occupied each industry.
+
+The old data (“2_skill_penetration.csv”) is 30,740 × 7 variables and the cleaned clean data (“2_skill_penetration_clean.csv”) is 4156 × 9.
+
+```{r read data}
+penetration_raw <- 
+  read_csv(here::here('data/2_skill_penetration.csv'))
+
+```
+
+
+```{r data cleaning}
+penetration_clean <- penetration_raw %>% 
+  select(!isic_section_index) %>% 
+  pivot_wider(names_from = year, 
+              values_from = skill_group_penetration_rate) %>% 
+  select(skill_group_category:"2019") %>% 
+  rename(penetration_rate_2015 = "2015", penetration_rate_2016 = "2016", 
+         penetration_rate_2017 = "2017", penetration_rate_2018 = "2018", 
+         penetration_rate_2019 = "2019", section_name = isic_section_name) %>% 
+  na.omit() %>% 
+  mutate(penetration_rate_2015 = as.numeric((unlist(penetration_rate_2015))), 
+         penetration_rate_2016 = as.numeric((unlist(penetration_rate_2016))), 
+         penetration_rate_2017 = as.numeric((unlist(penetration_rate_2017))), 
+         penetration_rate_2018 = as.numeric((unlist(penetration_rate_2018))), 
+         penetration_rate_2019 = as.numeric((unlist(penetration_rate_2019)))
+         )
+
+
+```
+
+```{r export cleaned data}
+write.csv(penetration_clean, here::here("data/2_skill_penetration_clean.csv"))
+```
 
 4) **Find the industry_section that is best to each region/continent.**
 
