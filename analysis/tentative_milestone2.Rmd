@@ -1,0 +1,404 @@
+---
+title: "ETC1010-5510 Project  Milestone 2 - T11_Wed_skimr"
+subtitle: "A Report On The LinkedIn-World Bank Digital Data for Development"
+author: "Hanchen Wang (30704456), Hao Li (32041594), Jiaying Zhang (30930685), Mohammed Faizan (31939872), Karan Garg (32106580)"
+output: 
+  bookdown::html_document2:
+    includes:
+      before_body: header.html
+keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+#loading packages
+
+library(tidyverse) 
+library(plotly)
+library(naniar)
+library(visdat)
+library(bookdown)
+library(knitr)
+library(ggplot2)
+library(lubridate)
+library(geosphere)
+library(ggmap)
+library(ggthemes)
+library(maps)
+library(patchwork)
+library(here)
+library(readxl)
+library(readr)
+```
+
+
+**TUTOR: Samantha Dawson**
+
+**LECTURER: Patricia Menéndez**
+
+# Project and Data Description
+
+## The LinkedIn-World Bank Digital Data for Development: Industry Jobs and Skills Trends
+
+"The World Bank Group and LinkedIn have created the Digital Data for Development collaboration to support innovative policy decisions as developing countries grapple with a rapidly changing global economy. With hundreds of millions of members worldwide, LinkedIn has the potential to offer a new, timely, and granular source of data about emerging industries, workers’ changing skills composition and how they’re engaging with labor markets globally." ~ [1](https://linkedindata.worldbank.org/about)
+
+This collaboration enables government and policy makers to drive better policy implementations,  thus creating opportunities to the global work force. The data represents LinkedIn members' data based on four metrics: Industry Employment Shifts, Talent Migration, Industry Skills Needs and Skills Penetration. The records in the data represent over 100 countries having a distribution across six major industry sectors(representing 148 industries): Financial Services, Professional Services, Information & Communication Technology (ICT), the Arts & Creative Industries, Manufacturing, and Mining/Quarrying and possessing skills within the over 50,000 distinct, standardized skills classified by LinkedIn into 249 skill groups, further categorized as: Business Skills, Disruptive Tech Skills, Soft Skills, Specialized Industry Skills and Tech Skills.  
+
+For our project, we will be working on the following questions.
+
+Refer Appendix for variable description.
+
+
+## Questions and Data Cleaning
+
+1) **Which skill category is most common across all Industry Sections and how does it vary between each section? ****(Hao Li)**
+
+Data description: The data is about what skills are needed most in different industries. 
+The dataset used in this question is "industry-skill-needs". It showcases the rank of each skill _grp _category depending upon its skill_grp_name being used in an industry. Additionally each industry is categorized among a given industry _section.
+The file from the source is tidy and does not require further cleaning.
+
+
+```{r skills_read_data}
+mydat <- read_excel(here::here('data/1_skills.xlsx'), 
+                    sheet = 'Industry Skills Needs')
+
+mydat$industry_name <- as.factor(mydat$industry_name)
+mydat$isic_section_name <- as.factor(mydat$isic_section_name)
+mydat$skill_group_category <- as.factor(mydat$skill_group_category)
+
+##TABLES:
+#skill category frequency by industry section:
+skillgroupcount <- mydat %>% 
+  group_by(isic_section_name) %>%
+  count(mydat$skill_group_category) %>% arrange(desc(n))
+
+write.csv(mydat, here::here("data/1_skills_cleaned.csv"))
+```
+
+
+2) **What is the average percentage of net migration for each industry over the past five years and Is the growth rate of immigration within the industry related to the growth rate of the industry?** **(Jiaying Zhang)**
+
+
+In the first part of the question, I used the data in migration_industry data and mainly focus on the net immigration in each industry. Therefore, I chose the industry name, industry code, industry group, industry group code and the net immigration rate each year for analysis. First of all, I change the name of the variable and use Pivot_Longer to extract the year. Besides that I calculate the average net migration rate of the industry and add a variable combining industry code and year and then I get the 2_migrationInd_growth_clean1 (26475 * 4).
+In the second part of the question, I combined migration_industry data with 4_employment_growth data to study whether the number of immigrants in an industry is related to industry development. I chose industry name, industry code and industry net growth per year. As above, I extracted the year and combined it with the industry code as the key to connect both data and then changed year to a numerical variable and then I get the 2_migrationInd_growth_clean2 (380 * 5).
+
+```{r mg_grow_read_data}
+mgindustry <- read_csv(here::here("data/migration_industry.csv"))
+growindustry<- read_excel(here::here('data/4_employment_growth.xlsx'), sheet=4)
+```
+```{r 2_datacleaning, include=FALSE}
+mgpick <- mgindustry %>% 
+  select(industry_name,
+         industry_id,
+         isic_section_index,
+         isic_section_name,
+                net_per_10K_2015,
+                net_per_10K_2016,
+                net_per_10K_2017,
+                net_per_10K_2018,
+                net_per_10K_2019)
+growpick <- growindustry %>% 
+  select(industry_name, 
+         industry_id,
+                growth_rate_2015,
+                growth_rate_2016,
+                growth_rate_2017,
+                growth_rate_2018,
+                growth_rate_2019)
+
+```
+
+```{r mgdatause}
+#average percentage of net migration for each industry over the past five years
+
+mguse<- mgpick %>% 
+   rename(c("2015"= "net_per_10K_2015",
+           "2016"= "net_per_10K_2016",
+           "2017"= "net_per_10K_2017",
+           "2018"= "net_per_10K_2018",
+           "2019"= "net_per_10K_2019",
+           "industry" = "industry_name",
+           "industry_section"= "isic_section_index",
+           "section_name" = "isic_section_name")) %>% 
+    pivot_longer(cols = 5:9,  
+               names_to = "year",            
+               values_to = "net_migration_rate") %>% 
+ mutate(migration_year= year,
+        migration_industry_id = industry_id) %>% 
+ unite("industry_year", migration_industry_id, year)
+```
+```{r mgave}
+mgave <- mguse %>% 
+  group_by(industry_year) %>% 
+  summarise(average_migration_rate = mean(net_migration_rate, na.rm = TRUE),
+            industry_section_index = industry_section) 
+```
+```{r mgfinal}
+mgfinal <- mgave %>% separate(industry_year,
+           c("industry","year"), "_") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  group_by(industry_section_index)
+```
+
+
+```{r relationdata}
+#Is the growth rate of immigration within the industry related to the growth rate of the industry?
+
+growuse <- growpick %>% 
+   rename(c("2015"= "growth_rate_2015",
+           "2016"= "growth_rate_2016",
+           "2017"= "growth_rate_2017",
+           "2018"= "growth_rate_2018",
+           "2019"= "growth_rate_2019"
+           )) %>% 
+    pivot_longer(cols = 3:7,  
+               names_to = "year",            
+               values_to = "growth_rate") %>% 
+ unite("industry_year", industry_id, year)
+growclean <- growuse %>% 
+  mutate(growth_rate = str_sub(growuse$growth_rate,start = 1, end = -2))%>% 
+  mutate(growth_rate = as.numeric(growth_rate)) %>% 
+  na.omit()
+```
+
+```{r growave}
+growave <- growclean %>% 
+  group_by(industry_year) %>% 
+summarise(average_grow_rate = mean(growth_rate, na.rm = TRUE))
+```
+```{r full}
+fulldata<- mgave %>% 
+  inner_join(growave, by="industry_year")
+```
+
+```{r finaldata}
+cleandata <- fulldata %>% separate(industry_year,
+           c("industry_section","year"), "_") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  unique()
+```
+
+```{r}
+write.csv(mgfinal, here::here("data/2_migrationInd_growth_clean1.csv"))
+write.csv(cleandata, here::here("data/2_migrationInd_growth_clean2.csv"))
+```
+
+
+3) **For each common skill_category, which industry has the highest penetration rate and what is the change of the common skill penetration rate over the period of time?** **(Hanchen Wang)**
+
+
+Data Description
+
+“2_skill_penetration.csv” is the data showing skill profiles for each global industry and penetration of LinkedIn skill groups at the global industry level from 2015 to 2019, in which penetration means the weight of one skill occupied each industry.
+
+The old data (“2_skill_penetration.csv”) is 30,740 × 7 variables and the cleaned clean data (“2_skill_penetration_clean.csv”) is 4156 × 9.
+
+```{r penetration_read_data}
+penetration_raw <- read_excel(here::here('data/3_skill_penetration.xlsx'), sheet=4)
+```
+
+
+```{r 3_datacleaning}
+penetration_clean <- penetration_raw %>% 
+  select(!isic_section_index) %>% 
+  pivot_wider(names_from = year, 
+              values_from = skill_group_penetration_rate) %>% 
+  select(skill_group_category:"2019") %>% 
+  rename(penetration_rate_2015 = "2015", penetration_rate_2016 = "2016", 
+         penetration_rate_2017 = "2017", penetration_rate_2018 = "2018", 
+         penetration_rate_2019 = "2019", section_name = isic_section_name) %>% 
+  na.omit() %>% 
+  mutate(penetration_rate_2015 = as.numeric((unlist(penetration_rate_2015))), 
+         penetration_rate_2016 = as.numeric((unlist(penetration_rate_2016))), 
+         penetration_rate_2017 = as.numeric((unlist(penetration_rate_2017))), 
+         penetration_rate_2018 = as.numeric((unlist(penetration_rate_2018))), 
+         penetration_rate_2019 = as.numeric((unlist(penetration_rate_2019)))
+         )
+
+
+```
+
+```{r export cleaned data}
+write.csv(penetration_clean, here::here("data/3_skill_penetration_clean.csv"))
+```
+
+4) **Find the industry_section that is best to each region/continent.** **(Faizan and Karan)**
+
+5) **Which industry_name sees the maximum growth over time in each region/continent, depending on the region’s best industry_section ?** **(Mohammed Faizan)**
+
+```{r 5_reading_data}
+skills_raw <- read_excel(here::here('data/1_skills.xlsx'), sheet=4)
+penetration_raw <- read_excel(here::here('data/3_skill_penetration.xlsx'), sheet=4)
+emp_growth_raw <- read_excel(here::here('data/4_employment_growth.xlsx'), sheet=4)
+```
+```{r emp_growth_long}
+# tidy emp_growth_raw
+temp <- emp_growth_raw %>% select(starts_with("growth")) %>% names()
+emp_growth_raw_long <- emp_growth_raw %>%
+                          pivot_longer(cols = all_of(temp), 
+                                       names_to = "year", 
+                                       values_to = "growth_rate") %>%
+                      separate(year, into = c("temp1","temp2","year"), convert = TRUE) %>%
+                      select(-starts_with("temp"))
+```
+```{r}
+write.csv(emp_growth_raw_long, here::here("data/4_employment_growth_clean"))
+```
+
+
+The employment growth data represents the overall rate of change of employment between a pair of consecutive years for an industry, across 2015 to 2019. This rate of change is called "growth rate" which is measured by the percentage change in the number of employees for that industry .The sample of LinkedIn members is limited to those that have a company registered on LinkedIn on their profile. For a year, the number of employees working in an industry is the cumulative sum of the shift in the employed industry of the LinkedIn members, that is,the sum of the linked profiles with no shift in industry and the difference of the number of employees entering that industry and the number of employees leaving that industry. For example, if an industry has for the year 2014, 1000 employees and 100 employees enter this industry and 50 employees leave this industry in 2015, then the number of employees in this industry for the year 2015 is 1000 + 100 - 50 and the growth rate in 2015 is 0.05%. The formula for growth rate is, 
+\begin{equation}
+growth rate = (membercount_i-membercount_j/membercount_i)*100
+\end{equation}
+
+The growth is described with respect to variables such as, `r knitr::combine_words(as.vector(emp_growth_raw_long%>%names()))`. However, the original data is in a wider format with growth rates for different years represented in the same row. As such, in accordance with the tidy data definition, the data was transformed into longer format and hence cleaned. For the question, records are filtered for the appropriate industry section for each region and then analysis is being done for industries within that section.
+
+```{r eval=FALSE}
+knitr::kable(emp_growth_raw_long%>%head(5), caption = "Employment Growth Data")
+```
+
+
+```{r eda_emp_growth_eda, include=FALSE}
+pct_miss(emp_growth_raw_long) #no missingness
+length(unique(emp_growth_raw_long$country_name)) #128 countries
+unique(emp_growth_raw_long$wb_region) #7 world bank regions
+unique(emp_growth_raw_long$wb_income) # 4 income groups of countries
+unique(emp_growth_raw_long$isic_section_name) # 6 industry sections
+unique(emp_growth_raw_long$year) #2015-2019
+```
+
+```{r}
+# a list of data frames is created to apply map function.
+gfun <- function(x){
+  temp <- emp_growth_raw_long%>%filter(year==x)
+  return(temp)
+}
+emp_growth_yearwise <- list(gfun(2015),gfun(2016),gfun(2017),gfun(2018),gfun(2019))
+```
+
+
+```{r include=FALSE}
+#for each region, every year there same number of records for each industry_section
+emp_growth_raw_long%>%count(wb_region,isic_section_name,year)%>%pivot_wider(id_cols = c(year,n,wb_region,isic_section_name),names_from = year, values_from=n)
+
+emp_growth_raw_long%>%count(wb_region,isic_section_index,year)%>%ggplot()+geom_col(mapping = aes(x=isic_section_index,y=n,fill=as.character(year)),position ="dodge")+facet_wrap(~wb_region)#+theme(axis.text.x = element_blank())
+
+#presence of industries in each region
+emp_growth_raw_long %>%
+  ggplot()+geom_count(mapping=aes(x=wb_region, y=isic_section_name))+theme(axis.text.x = element_text(angle = 45))
+```
+
+```{r include=FALSE}
+#some summaries
+#joining skills and penetration data
+
+skill_penetration_common <- skills_raw %>%
+                            inner_join(penetration_raw,
+                                       by=c("year"="year",
+                                          "isic_section_index"="isic_section_index",
+                                       "isic_section_name"="isic_section_name",
+                                       "skill_group_category"="skill_group_category",
+                                       "skill_group_name"="skill_group_name",
+                                       "industry_name"="industry_name")
+                                       ) %>%
+                            select(-isic_section_index)
+
+#some summaries
+unique(skill_penetration_common$year)
+unique(skill_penetration_common$isic_section_name)
+unique(skill_penetration_common$skill_group_category)
+
+#all skills required by all industries except for mining and quarrying which does not require disruptive tech skills. Soft skills' importance remains same across all industry sections.
+skill_penetration_common%>%ggplot()+geom_count(mapping = aes(x=isic_section_name,skill_group_category))+theme(axis.text.x = element_text(angle = 60))
+```
+
+```{r include=FALSE}
+industry_info <- skill_penetration_common %>% select(isic_section_name,industry_name) %>%
+                  group_by(isic_section_name) %>% count(industry_name) %>% select(-n) %>%
+                  ungroup()
+
+industries <- industry_info%>%pivot_wider(id_cols= c(isic_section_name, industry_name), names_from = isic_section_name, values_from = industry_name)
+industry_info%>%ggplot()+geom_bar(aes(x=isic_section_name))+coord_flip()+labs(title = "Industry Count within each Section")
+```
+
+```{r include=FALSE}
+
+skills_info <- skill_penetration_common %>% select(skill_group_category,skill_group_name) %>%
+                  group_by(skill_group_category) %>% count(skill_group_name) %>% select(-n) %>%
+                  ungroup()
+skills <- skills_info%>%pivot_wider(id_cols= c(skill_group_category, skill_group_name), names_from = skill_group_category, values_from = skill_group_name)
+skills_info%>%ggplot()+geom_bar(aes(x=skill_group_category))+coord_flip()+labs(title = "Skill Count within each Skill Category")
+```
+
+
+
+6) **For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?** **(Karan Garg)**
+
+
+This data describes the industry wise employment growth across the years, 2015 to 2019. It further showcases the growth rate across variables such as Country, Region/Continent, Industry Section and  Industries. The tidy data definition states that, a data set is called tidy, when "each variable is in its own column, each observation is in its own row and each value is in its own cell". In accordance with the tidy data statement,the employment growth dataset is in the wide format and values like Year given in separate columns and the **growth rate** of different years given in the same row. To make the data clean we used functions like **pivot_longer** and **separate** to clean the data and transform it into tidy data.
+
+The dimensions of the cleaned data set are 36675 X 10.
+
+```{r 6_read-data,include=FALSE}
+growth <- read.csv(here::here("data/industry-employment-growth.csv"))
+```
+
+```{r 6_clean_data,include=FALSE}
+growth_tidy <- growth %>% 
+  pivot_longer(cols = 9:13,
+               names_to = "year",
+               values_to = "growth_rate") %>% 
+  separate(year,into=c("temp1","temp2","year"),sep = "_") %>% 
+  select(-c(temp1,temp2))
+
+  
+```
+
+```{r write-data}
+write.csv(growth_tidy,here::here("data/industry-employment-growth-cleaned.csv"))
+```
+
+# References
+
+
+## Data Source
+
+1) [The LinkedIn-World Bank Digital Data for Development:Industry Jobs and Skills Trends - About](https://linkedindata.worldbank.org/about)
+ 
+2) [The World Bank: Industry Skills Needs Dataset(3500 X 7), Skill Penetration Dataset(20780 X 7)](https://datacatalog.worldbank.org/dataset/skills-linkedin-data)
+
+3) [The World Bank: Talent Migration Dataset(Industry Migration-5295 X 13)](https://datacatalog.worldbank.org/dataset/talent-migration-linkedin-data)
+
+4) [The World Bank: Industry Employment Shifts Dataset(7335 X 13)](https://datacatalog.worldbank.org/dataset/employment-growth-linkedin-data)
+
+5) [The World Bank: Terms of Use for Datasets(CC BY 4.0)](https://www.worldbank.org/en/about/legal/terms-of-use-for-datasets)
+
+"License- The aggregated datasets and visuals are available to all for the public good under the Creative Commons Attribution 3.0 IGO license with attribution to both LinkedIn Corporation and the World Bank. The World Bank Group and LinkedIn Corporation (including its affiliates) do not take responsibility and are not liable for any damage caused through use of data and insights through this website, including any indirect, special, incidental or consequential damages."
+
+
+<div id="refs"></div>
+
+# (APPENDIX) Appendix {-} 
+
+##### Country – countries with 100,000+ LinkedIn members. {-} 
+
+##### World Bank Region – countries as classified given the most recent 6 regional World Bank country categories. {-} 
+
+##### World Bank Income Group – countries are classified given the most recent World Bank country classification by GNI into 4 categories: Low Income, Lower Middle Income, Upper Middle Income, and High Income. {-} 
+
+##### Industry – Detailed economic activity defined through the LinkedIn industry classification (approximately ISIC Rev. 4 2 digit level), covering approximately 140 industries (industries may be excluded based on data quality considerations) which compose the six ISIC Rev. 4 tradable sectors (ISIC Index: B, C, K, J, M, R). Please see LinkedIn – ISIC industry mapping file https://datacatalog.worldbank.org/node/144635 {-} 
+
+##### ISIC Section – The LinkedIn industry taxonomy is mapped to ISIC Rev. 4 Sector (1 digit) categories. Data is limited to 6 tradable sectors (ISIC Index: B, C, K, J, M, R). Please see LinkedIn – ISIC industry mapping file. https://datacatalog.worldbank.org/node/144635 {-}
+###### Tradable and Knowledge-Intensive Sectors  –  Six knowledge-intensive and tradable sectors, using ISIC Rev. 4 classification, are: B-mining and quarrying; C-manufacturing; J-information and communication; K-financial and insurance activities; M-professional, scientific, and technical activities; and R-arts, entertainment and recreation. {-} 
+
+##### Skill Group – Skill groups categorize the 50,000 detailed individual skills into approximately 250 skills groups (some skill groups may be excluded based data quality considerations). Skill related metrics are presented at the skill group rather than detailed skill level. {-} 
+
+##### Industry Skills Needs – Captures the most-distinctive, most-represented skills of LinkedIn members working in a particular industry. Based on the skills section of the LinkedIn profile. It’s calculated using an adapted version of a text mining technique called Term Frequency - Inverse Document Frequency (TF-IDF). {-} 
+
+##### Skill Penetration – Measures the time trend of a skill across all occupations within an industry. Based on skill addition rates, and the number of times a particular skill appears in the top 30 skills added across all of the occupations within an industry. For example, if 3 of 30 skills for Data Scientists in the Information Services industry fall into the Artificial Intelligence skill group, Artificial Intelligence has a 10% penetration for Data Scientists in Information Services. These penetration rates are averaged across occupations to derive the industry averages reported. {-} 
+##### Migration Overview  – All the metrics are based on net migration (arrivals minus departures). These net migration figures are each normalized differently to enable fairer comparisons across samples. We calculate all on an annual basis, and report an average of the last three years. {-}
+###### Industry Migration – Industries gained and lost. Based on the industry associated with a member’s company at the time of migration. The net gain or loss of members from another country working in a given industry divided by the number of LinkedIn members working in that industry in the target (or selected) country, multiplied by 10,000. {-} 
+
+##### Industry Employment Shifts – Captures the transitions among industries over time by LinkedIn members as a proxy for industry employment growth. Based on the industries declared by the companies in a member’s work history. {-} 
+
