@@ -1,0 +1,252 @@
+---
+title: "ETC1010-5510 Project - T11_Wed_skimr"
+subtitle: "A Report On The LinkedIn-World Bank Data for Development"
+author: "Hanchen Wang 30704456, Hao Li 32041594, Jiaying Zhang 30930685, Mohammed Faizan 31939872, Karan Garg 32106580"
+date: "28 April 2021"
+output:
+  bookdown::html_document2: 
+              css: monashreport.css
+              includes:
+               before_body: header.html
+  bookdown::pdf_document2: default
+keep_md: true    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+#loading packages
+
+library(tidyverse) 
+library(plotly)
+library(naniar)
+library(visdat)
+library(bookdown)
+library(knitr)
+library(ggplot2)
+library(lubridate)
+library(geosphere)
+library(ggmap)
+library(ggthemes)
+library(maps)
+library(patchwork)
+library(here)
+library(kableExtra)
+library(readxl)
+library(readr)
+library(tidytext)  
+```
+
+
+```{r 6_read-data,include=FALSE}
+growth <- read_excel(here::here('data/456_employment_growth.xlsx'), sheet=4)
+
+```
+
+```{r 6_clean_data,include=FALSE}
+growth_tidy <- growth %>% 
+  pivot_longer(cols = 9:13,
+               names_to = "year",
+               values_to = "growth_rate") %>% 
+  separate(year,into=c("temp1","temp2","year"),sep = "_") %>% 
+  select(-c(temp1,temp2))
+
+  
+```
+
+# What is the best Industry section w.r.t region?
+
+```{r Q4-part1,ehco=FALSE}
+growth_tidy %>% 
+  group_by(wb_region,isic_section_name) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  arrange(wb_region,desc(Avg_growth_rate)) %>% 
+  slice_max(Avg_growth_rate,n = 1) %>%
+  arrange(-Avg_growth_rate) %>% 
+  rename(region = wb_region,
+         Industry_section = isic_section_name) %>%  
+  kable(caption = "Region wise best Industry section") %>% 
+   kable_styling(bootstrap_options = c("basic","striped,hover")) 
+
+```
+
+The table \@ref(tab:Q4-part1) depicts that :
+
+*  ***East Asia & Pacific*** and ***North America*** region had the maximum Avg. growth of employment and industries under the section ***Financial and insurance activities*** topped it.
+*  On the other hand ***South Asia*** had the least Avg. growth with industries under the section ***Manufacturing*** and ***Mining and quarrying*** topping it.
+
+
+# What is the Avg. growth of each industry section w.r.t region ?
+
+```{r Q4-graph,ehco = FALSE,fig.width=15,fig.height=10,fig.cap="Avg. growth of an insury section w.r.t region"}
+growth_tidy %>% 
+  group_by(wb_region,isic_section_name) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  arrange(wb_region,desc(Avg_growth_rate)) %>% 
+  mutate(isic_section1 = reorder_within(isic_section_name,Avg_growth_rate,wb_region)) %>% 
+  ggplot(aes(Avg_growth_rate,
+             isic_section1,
+             fill = isic_section_name)) +
+  geom_col() +
+  geom_text(aes(label = Avg_growth_rate)) +
+  scale_y_reordered() +
+  xlab("Average Growth Rate") +
+  ylab("Indutry Section type") +
+  facet_wrap(~wb_region,ncol = 2,scales = "free")
+
+```
+
+The Figure \@ref(fig:Q4-graph) gives a broader insight to the above observation and showcases Avg. growth of an employment in an ***Industry section*** within each region in the decreasing order.
+
+# What is the Avg. growth of each industry within a region w.r.t best industry section?
+
+```{r Q5-part1,echo=FALSE,fig.width=15,fig.height=10,fig.cap="Avg. growth of an industry within a region w.r.t best industry section"}
+ growth_tidy %>%
+  rename(region = wb_region,
+         ind_sect = isic_section_name) %>% 
+  dplyr::filter((region == "East Asia & Pacific" & ind_sect == "Financial and insurance activities") |
+           (region == "Europe & Central Asia" & ind_sect == "Financial and insurance activities") |
+           (region == "Latin America & Caribbean" & ind_sect == "Financial and insurance activities") |
+           (region == "Middle East & North Africa" &  ind_sect == "Mining and quarrying") |
+           (region == "North America" & ind_sect == "Financial and insurance activities") |
+           (region == "Sub-Saharan Africa" &  ind_sect == "Manufacturing") |
+           (region == "South Asia" &  ind_sect == "Mining and quarrying") |
+           (region == "South Asia" &  ind_sect == "Manufacturing")) %>% 
+  group_by(region,ind_sect,industry_name) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  mutate(ind_name = reorder_within(industry_name,Avg_growth_rate,region)) %>% 
+  ggplot(aes(Avg_growth_rate,
+             ind_name,
+             fill = industry_name)) +
+  geom_col() + 
+  geom_text(aes(label = Avg_growth_rate)) +
+  scale_y_reordered() +
+  xlab("Average Growth Rate") +
+  ylab("Industry Name") +
+  facet_wrap(region~ind_sect, ncol = 2,scales = "free")
+```
+
+The figure \@ref(fig:Q5-part1) depicts:
+
+*  ***Venture Capital & Private Equity*** had the maximum growth in all the rregions having ***Financial and insurance activities*** as it's best section except the ***Latin America & Caribbean*** region where it dropped to 3rd position and ***Investment Banking*** topping this region.
+* Industries like ***Oil & Energy***,***Mining &  Metals***,***Renewable & Environment*** and ***Food Production*** topped in other regions. 
+
+# What is the trend of each industry within a region w.r.t best industry section?
+
+```{r Q5-part2,echo=FALSE,fig.width=12,fig.cap="Trend of an industry within a region w.r.t best industry section"}
+q5_graph <- growth_tidy %>%
+  rename(region = wb_region,
+         ind_sect = isic_section_name) %>% 
+  
+  dplyr::filter((region == "East Asia & Pacific" & ind_sect == "Financial and insurance activities") |
+           (region == "Europe & Central Asia" & ind_sect == "Financial and insurance activities") |
+           (region == "Latin America & Caribbean" & ind_sect == "Financial and insurance activities") |
+           (region == "Middle East & North Africa" &  ind_sect == "Mining and quarrying") |
+           (region == "North America" & ind_sect == "Financial and insurance activities") |
+           (region == "Sub-Saharan Africa" &  ind_sect == "Manufacturing") |
+           (region == "South Asia" &  ind_sect == "Mining and quarrying") |
+           (region == "South Asia" &  ind_sect == "Manufacturing")) %>% 
+  group_by(region,ind_sect,industry_name,year) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  ggplot(aes(as.numeric(year),
+             Avg_growth_rate,
+             color = industry_name,
+             text = industry_name)) +
+  geom_point() +
+  geom_line() +
+  scale_x_continuous() +
+  xlab("Year") +
+  ylab("Average Growth Rate") +
+  facet_wrap(region ~ ind_sect, nrow = 2)
+  ggplotly(q5_graph)
+```
+
+The figure \@ref(fig:Q5-part2) provides a broader analysis to the Figure \@ref(fig:Q5-part1) and showcase the trend of Avg.Growth of an employee from year **2015-2019**.
+
+*  Mostly every region had either a few up/down or had steady growth rate, and by the year 2019 had fairly same growth rate to the one they had in 2015 for each industry.
+* Regions like ***South Asia*** and ***Latin America & Caribbean*** saw some increase in Growth rate of an employee over the years.
+
+# What is the Avg. growth of the best industry within a country w.r.t ts best industry section?
+
+```{r Q6-part1,echo=FALSE,fig.width=15,fig.height=10,fig.cap="Avg growth of the best industry within in a country w.r.t region"}
+ income_grps <- growth_tidy %>% 
+   rename(Income_group = wb_income,
+         country = country_name) %>% 
+  select(country,Income_group) %>% 
+  dplyr::distinct()
+
+q61=graph <-  growth_tidy %>%
+  rename(region = wb_region,
+         ind_sect = isic_section_name,
+         ind_name = industry_name,
+         country = country_name) %>% 
+  filter((region == "East Asia & Pacific" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Europe & Central Asia" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Latin America & Caribbean" & ind_sect == "Financial and insurance activities" & ind_name == "Investment Banking") |
+           (region == "Middle East & North Africa" &  ind_sect == "Mining and quarrying" & ind_name == "Mining & Metals") |
+           (region == "North America" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Sub-Saharan Africa" &  ind_sect == "Manufacturing" & ind_name == "Renewables & Environment") |
+           (region == "South Asia" &  ind_sect == "Mining and quarrying" & ind_name == "Oil & Energy") |
+           (region == "South Asia" &  ind_sect == "Manufacturing" & ind_name == "Food Production")) %>% 
+  group_by(region,ind_sect,ind_name,country) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  mutate(country1 = reorder_within(country,Avg_growth_rate,region)) %>%
+  left_join(income_grps) %>%  
+  ggplot(aes(Avg_growth_rate,
+             country1,
+             fill = country,
+             text = Income_group)) +
+  geom_col() +
+  geom_text(aes(label = Avg_growth_rate)) +
+  scale_y_reordered() +
+  ylab("Country") +
+  xlab("Average Growth rate") +
+  facet_wrap(region~ind_name, ncol = 2,scales = "free")
+  ggplotly(q61=graph)
+
+```
+
+The figure \@ref(fig:Q6-part1) take us further step by adding another layer of **Country** to the \@ref(fig:Q5-part1).
+
+* Mostly every region had a big top knot Country baving the max growth rate of an employee, whereas regions like ***South Asia*** and ***Sub-Saharan Africa*** had countries like ***Nepal*** and ***Zambia*** having the maximum growth rate even though coming under Low/Lower middle income categories.
+*  Though overall ***North America*** had the max growth of employee in the ***Venture Capital & Private Equity*** (see Figure \@ref(fig:Q5-part1)), but when seen country wise, ***Luxembourg*** in ***Europe & Central Asia*** region had approximately double the growth than top country ***Canada*** .
+
+# What is the trend of the best industry within a country w.r.t ts best industry section?
+
+```{r Q6-part2,echo=FALSE,fig.width=12,fig.cap="Trend of best industry within in a country w.r.t region"}
+q6_graph <- growth_tidy %>%
+  rename(region = wb_region,
+         ind_sect = isic_section_name,
+         ind_name = industry_name,
+         country = country_name) %>% 
+  filter((region == "East Asia & Pacific" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Europe & Central Asia" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Latin America & Caribbean" & ind_sect == "Financial and insurance activities" & ind_name == "Investment Banking") |
+           (region == "Middle East & North Africa" &  ind_sect == "Mining and quarrying" & ind_name == "Mining & Metals") |
+           (region == "North America" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Sub-Saharan Africa" &  ind_sect == "Manufacturing" & ind_name == "Renewables & Environment") |
+           (region == "South Asia" &  ind_sect == "Mining and quarrying" & ind_name == "Oil & Energy") |
+           (region == "South Asia" &  ind_sect == "Manufacturing" & ind_name == "Food Production")) %>% 
+  group_by(region,ind_sect,ind_name,country,year) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  ggplot(aes(as.numeric(year),
+             Avg_growth_rate,
+             color = country,
+             text = ind_sect)) +
+  geom_point() +
+  geom_line() +
+  scale_x_continuous() +
+  xlab("Year") +
+  ylab("Average Growth Rate") +
+  facet_wrap(region ~ ind_name, nrow = 2)
+  ggplotly(q6_graph)
+
+```
+
+The figure \@ref(fig:Q6-part2) provides a broader insight to the figure \@ref(fig:Q6-part1) by showing the trend of grqwth in each Country in a span of 5 years from 2015-2019.
+
+Mostly every country showed s steady graph with some exceptions like:
+
+*  In ***Latin America & Caribbean***, **Chile** saw a constant drop in ts growth rate wheras **Venezuela** showed an opposite behaviour.
+*  In ***Miiddle East & North Africa*** region, **Kuwat** though still topping the Avg.growth rate over the years, yet saw a massive fall in its growth rate.
+
