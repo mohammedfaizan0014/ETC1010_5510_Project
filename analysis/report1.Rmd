@@ -1345,6 +1345,54 @@ Mostly every country showed s steady graph with some exceptions like:
 ## Bibliographies
 
 @R-base
+@R-bookdown
+@R-broomstick
+@R-dplyr
+@R-dygraphs
+@R-forcats
+@R-geosphere
+@R-ggmap
+@R-ggplot2
+@R-ggraph
+@R-ggrepel
+@R-ggthemes
+@R-here
+@R-igraph
+@R-kableExtra
+@R-knitr
+@R-lubridate
+@R-maps
+@R-naniar
+@R-patchwork
+@R-plotly
+@R-purrr
+@R-quantmod
+@R-readr
+@R-readxl
+@R-rpart
+@R-stringr
+@R-tibble
+@R-tidyr
+@R-tidytext
+@R-tidyverse
+@R-TTR
+@R-visdat
+@R-xts
+@R-zoo
+@bookdown2016
+@ggmap2013
+@ggplot22016
+@igraph2006
+@knitr2015
+@knitr2014
+@lubridate2011
+@plotly2020
+@tidytext2016
+@tidyverse2019
+@visdat2017
+@zoo2005
+
+
 
 <div id="refs"></div>
 
