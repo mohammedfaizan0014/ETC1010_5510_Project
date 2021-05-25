@@ -162,8 +162,7 @@ Overall,specialized Industry Skills are the most common skill in professional sc
 
 ## What is the average percentage of net migration for each industry over the past five years and Is the growth rate of immigration within the industry related to the growth rate of the industry?
 
-"All the Talent Migration metrics are based on net migration (arrivals minus departures)."
-[3](https://datacatalog.worldbank.org/dataset/talent-migration-linkedin-data) 
+Monitoring international flows of migrants is critical to designing effective talent attraction and retention policies and here "All the Talent Migration metrics are based on net migration (arrivals minus departures)."[3](https://datacatalog.worldbank.org/dataset/talent-migration-linkedin-data) 
 
 ```{r read-data}
 mgindustry <- read_csv(here::here("data/2_migration_industry.csv"))
@@ -218,7 +217,7 @@ The figure \@ref(fig:vis)  shows average percentage of net migration for each in
 
 - There are some differences in each industry, but the differences are not large and all the industry sections' median net migration rate is positive.
 
-- If we see the median, the growth of financial and insurance activities showed the highest growth, while mining and quarrying industry showed the slowest growth.
+- If we see the median, the financial and insurance activities showed the highest growth, while mining and quarrying industry showed the slowest growth.
 
 
 ```{r vis2, fig.width=12, fig.cap="The industry average net migration rate for each industry section"}
@@ -237,7 +236,7 @@ ggplot(aes(industry_name,
 
 The figure \@ref(fig:vis2) shows Average percentage of net migration for each industry
 
-- The two highest net migration rates also exist in financial and insurance activities: Venture Capital & Private Equity (about 272) and Capital Markets (about 186).
+- The two highest net migration rates also exist in financial and insurance activities: Venture Capital & Private Equity (about 272) and Capital Markets (about 186),workers in these industry have stronger incentives to emigrate. 
 
 - The third place comes from the animation industry of Arts, Entertainment and Recreation. The average annual net migration rate reaches about 181.
 
@@ -294,9 +293,7 @@ ggplot(df_rp_aug,
 
 The figure  \@ref(fig:vis3) shows:
 
-- There is no obvious linear relationship between industry growth rate and migration rate.
-
-- Although the migration rate of most industries has increased, the industry growth rate in most industries has not changed.
+- There is no obvious linear relationship between industry growth rate and migration rate. Although the migration rate of most industries has increased, the industry growth rate in most industries has not changed.
 
 - However, we can see that the industry growth rate also increases with the large increase in migration rate.
 
