@@ -1,0 +1,1328 @@
+---
+title: "A Report On The LinkedIn_World Bank Data for Development"
+output: 
+  flexdashboard::flex_dashboard:
+        storyboard: true
+        vertical_layout: fill
+        orientation: rows
+        source_code: embed
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+#loading packages
+
+library(tidyverse) 
+library(plotly)
+library(naniar)
+library(visdat)
+library(bookdown)
+library(knitr)
+library(ggplot2)
+library(lubridate)
+library(geosphere)
+library(ggmap)
+library(ggthemes)
+library(maps)
+library(patchwork)
+library(here)
+library(readxl)
+library(readr)
+library(kableExtra)
+library(rpart)
+library(broomstick)
+library(tidytext)
+library(dygraphs)
+library(quantmod)
+library(igraph)
+library(ggraph)
+library(ggrepel)
+library(mapproj)
+```
+```{r writing_packages_bibliographies}
+knitr::write_bib(c(.packages()), "packages.bib")
+```
+
+# Introduction
+
+"The World Bank Group and LinkedIn have created the Digital Data for Development collaboration to support innovative policy decisions as developing countries grapple with a rapidly changing global economy. With hundreds of millions of members worldwide, LinkedIn has the potential to offer a new, timely, and granular source of data about emerging industries, workers’ changing skills composition and how they’re engaging with labor markets globally."
+
+This collaboration enables government and policy makers to drive better policy implementations,  thus creating opportunities to the global work force. The data represents LinkedIn members' data based on four metrics: Industry Employment Shifts, Talent Migration, Industry Skills Needs and Skills Penetration. The records in the data represent over 100 countries having a distribution across six major industry sectors(representing 148 industries): Financial Services, Professional Services, Information & Communication Technology (ICT), the Arts & Creative Industries, Manufacturing, and Mining/Quarrying and possessing skills within the over 50,000 distinct, standardized skills classified by LinkedIn into 249 skill groups, further categorized as: Business Skills, Disruptive Tech Skills, Soft Skills, Specialized Industry Skills and Tech Skills. 
+
+***
+
+**TEAM MEMBERS**
+
+|Name	          |Email Id	                  |Student Id  |
+|---------------|:-------------------------:|----------  |
+|Hao Li         |hlii0151@student.monash.edu| 32041594   |
+|Jiaying Zhang  |jzha0342@student.monash.edu| 30930685   |   
+|Hanchen Wang   |hwan143@student.monash.edu | 30704456   |
+|Mohammed Faizan|mfai0014@student.monash.edu| 31939872   | 
+|Karan Garg     |kgar0017@student.monash.edu| 32106580   | 
+ 
+***
+
+
+Skills {data-navmenu="Section" data-orientation=columns}
+===================================== 
+
+Column
+-----------------------------------------------------------------------
+
+### Analysis
+
+**The most common skill category across different sections is reported as Business Skills** 
+
+- Specialized Industry Skills group count is the highest. And information and Communication have more of Tech Skills.
+
+- Financial & Insurance Activities and Arts, Entertainment & Recreation have a rather different skill category distribution. This is because Arts, Entertainment & Recreation is a field in which each talent is a skill and thus Specialized Industry Skills(53%)!!! Financial & Insurance Activities commands Soft Skills and Business Skills(61%).
+
+- Specialized Industry Skills are the most common skill in professional scientific and technical activities. While business skills are the most important for people to acquire in financial and insurance activities.
+
+Column {.tabset data-width=700}
+-----------------------------------------------------------------------
+<b><font face="Georgia" size="5em" color="#063c91">Which skill category is most common across all Industry Sections and how does it vary between each section?</font></b>
+
+### The most common skill category across different sections is reported as Business Skills: Table1
+
+```{r comm, fig.width=8,fig.height=4, fig.cap="count of different skills"}
+mydat <- read_excel(here::here('data/1_skills.xlsx'), 
+                    sheet = 'Industry Skills Needs')
+
+mydat$industry_name <- as.factor(mydat$industry_name)
+mydat$isic_section_name <- as.factor(mydat$isic_section_name)
+mydat$skill_group_category <- as.factor(mydat$skill_group_category)
+
+##TABLES:
+#skill category count by industry section:
+indsec_skilcat <- mydat %>% 
+  group_by(isic_section_name) %>%
+  count(skill_group_category) %>% arrange(isic_section_name, desc(n))
+
+indsec_skilcat %>% pivot_wider(names_from = isic_section_name,
+                               values_from = n) %>% 
+      knitr::kable(caption="Skills and Industry Section",booktabs = TRUE) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), latex_options = "hold_position")
+#top 1 skill category in every industry section:
+section_top1 <- indsec_skilcat %>% 
+  group_by(isic_section_name) %>% 
+  slice(seq_len(1)) 
+```
+
+### Table2
+
+```{r}
+section_top1 %>% 
+      knitr::kable(caption="Top 1 skill category in every industry section",booktabs = TRUE) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), latex_options = "hold_position")
+
+##PLOTS:
+#set consistent color scheme:
+skillColors <-
+  setNames( c('wheat4', 'coral', 'azure','lightpink4','thistle4'),
+            levels(mydat$skill_group_category)  )
+
+
+```
+
+### Chart1
+    
+```{r table1, message=FALSE}
+#plot bar chart across inductry section:
+ggplot(section_top1, mapping= aes(x=isic_section_name,
+                                  y=n,
+                                  fill=skill_group_category)) +
+  geom_bar(stat = 'identity') +
+  xlab('Industry Section') + 
+  ylab('Frequency') +
+  ggtitle('Most Common Skill Category by Industry Section') +
+  scale_fill_manual(values = skillColors)+coord_flip()
+```
+
+
+
+   
+### Chart2
+
+```{r perc,eval = TRUE, fig.width=9,fig.height=4, fig.cap="percentage of different skills"}
+#Calculate the percentages
+section_topn <- indsec_skilcat %>%
+  group_by(isic_section_name) %>%
+  mutate(tot = sum(n)) %>%
+  mutate(percent = round(n/tot*100,0))
+
+section_topn$label = paste0(sprintf("%.0f", section_topn$percent), "%")
+
+#Plot
+ggplot(section_topn, 
+       aes(x = isic_section_name, 
+           y = n, 
+           fill = skill_group_category, 
+           label=label)) +
+  geom_bar(stat = 'identity', 
+           position = position_fill()) +
+  geom_text(position = position_fill(vjust = .5)) + 
+  ggtitle('Skill Category Distribution by Industry Section') +
+  ylab('percent') +
+  xlab('Industry Section') +
+  scale_fill_manual(values = skillColors) +
+  coord_flip()
+```
+
+
+
+
+Migration and Growth {data-navmenu="Section" data-orientation=columns}
+===================================== 
+
+Column
+-----------------------------------------------------------------------
+
+### Analysis
+
+**Average percentage of net migration for each industry Section and industry over the past five years** 
+
+- Among all the industry sections, Net migration of financial and insurance activities industry section is the highest. The average net migration is positive for all industry sections.
+
+- In the Financial and insurance activities industry section, the Financial and insurance activities industry also has the highest net migration rate among all industries. Net migration rate is positive in most industries.
+
+
+**The growth rate of immigration within the industry related to the growth rate of the industry** 
+
+- In most of the industry, industry growth rate and migration rate, there is no obvious linear relationship. In most of the industries, the growth of migration rate does not significantly promote the growth of the industry.
+
+Column {.tabset data-width=700}
+-----------------------------------------------------------------------
+<b><font face="Georgia" size="5em" color="#063c91">What is the average percentage of net migration for each industry over the past five years and Is the growth rate of immigration within the industry related to the growth rate of the industry?</font></b>
+
+```{r read-data}
+mgindustry <- read_csv(here::here("data/2_migration_industry.csv"))
+growindustry<- read_excel(here::here('data/456_employment_growth.xlsx'), sheet=4)
+```
+
+```{r datacleaning, include=FALSE}
+mguse <- mgindustry %>% 
+  select(industry_name,
+         industry_id,
+         isic_section_index,
+         isic_section_name,
+         country_name,
+                net_per_10K_2015,
+                net_per_10K_2016,
+                net_per_10K_2017,
+                net_per_10K_2018,
+                net_per_10K_2019) %>% 
+  filter(isic_section_name %in% unique(growindustry$isic_section_name)) %>%
+   rename(c("2015"= "net_per_10K_2015",
+           "2016"= "net_per_10K_2016",
+           "2017"= "net_per_10K_2017",
+           "2018"= "net_per_10K_2018",
+           "2019"= "net_per_10K_2019")) %>% 
+    pivot_longer(cols = c(6:10),  
+               names_to = "year",            
+               values_to = "net_per_10K_migration_rate") 
+```
+
+
+
+
+### Average percentage of net migration for each industry Section and industry over the past five years: Chart 1
+
+```{r mgave}
+mgave <- mguse  %>% 
+  group_by(isic_section_name,industry_name, year) %>% 
+  summarise(average_migration_rate = mean(net_per_10K_migration_rate))%>%
+  ungroup()
+  
+```
+
+```{r vis,fig.width=12, fig.cap="Net migration for each industry section"}
+mgvis <- mgave %>%
+ggplot(aes(x= isic_section_name,
+           y = average_migration_rate,
+           fill= isic_section_name)) +
+  geom_boxplot() + 
+  ggtitle("Net migration for each industry section") +
+  theme(axis.text.x = element_blank()) 
+ ggplotly(mgvis)
+```
+
+### Chart 2
+
+```{r vis2, fig.width=12, fig.cap="The industry average net migration rate for each industry section"}
+
+mgvis2 <- mgave %>%
+  group_by(isic_section_name, industry_name)  %>% 
+  summarise(migration_rate = mean(average_migration_rate)) %>% 
+ggplot(aes(industry_name,
+       migration_rate,
+       fill = isic_section_name)) +
+  geom_col()+
+   ggtitle("The average net migration rate for each industry ")+
+  theme(axis.text.x = element_blank()) 
+ ggplotly(mgvis2)
+```
+
+
+### The growth rate of immigration within the industry related to the growth rate of the industryChart 
+
+```{r relationdata}
+growuse <- growindustry %>% 
+  select(industry_name, 
+         industry_id,
+         isic_section_name,
+                growth_rate_2015,
+                growth_rate_2016,
+                growth_rate_2017,
+                growth_rate_2018,
+                growth_rate_2019) %>% 
+   rename(c("2015"= "growth_rate_2015",
+           "2016"= "growth_rate_2016",
+           "2017"= "growth_rate_2017",
+           "2018"= "growth_rate_2018",
+           "2019"= "growth_rate_2019"
+           )) %>% 
+    pivot_longer(cols = 4:8,  
+               names_to = "year",            
+               values_to = "growth_rate") 
+growclean <- growuse %>% 
+  mutate(growth_rate = str_sub(growuse$growth_rate,start = 1, end = -2))%>% 
+  mutate(growth_rate = as.numeric(growth_rate))
+```
+
+```{r growave}
+growave <- growclean %>% 
+  group_by(isic_section_name,industry_name, year) %>% 
+summarise(average_grow_rate = mean(growth_rate, na.rm = TRUE))
+```
+```{r full}
+fulldata<- mgave %>% 
+  inner_join(growave)
+
+mg_grow_model <- rpart(average_grow_rate~average_migration_rate, data = fulldata)
+df_rp_aug <- augment(mg_grow_model)
+```
+
+```{r vis3, fig.cap="Relationship between migration growth and industry growth"}
+ggplot(df_rp_aug,
+       aes(x = average_migration_rate,
+           y = average_grow_rate)) +
+  geom_point() +
+  geom_line(aes(y = .fitted), colour = "salmon", size = 2) 
+
+#no relation between migration rate and growth rate
+```
+
+
+Penetration Rate {data-navmenu="Section" data-orientation=columns}
+===================================== 
+
+Column
+-----------------------------------------------------------------------
+
+### Analysis
+
+**The highest penetration rate for different industry** 
+
+- Music industry has the highest skill penetration rate for skill groups among all industries(25%), graphic design ranked the second (22%).
+
+- Industries with low skill penetration may require more alternative skills due to the fragmentation of the industry. 
+
+- In the Financial and insurance activities industry section, the Financial and insurance activities industry also has the highest net migration rate among all industries. Net migration rate is positive in most industries.
+
+
+**The change of the common skill penetration rate** 
+
+- The specialized industry skills and tech skills has the higher rate which meet the requirements of industry development. 
+
+- Interestingly, with the advent of the era of big data and technology, the importance of many traditional skills like business skill has gradually declined, as shown in the decreasing penetration rate, which means that they are more replaceable in the industry and therefore no longer unique.
+
+
+
+Column {.tabset data-width=700}
+-----------------------------------------------------------------------
+<b><font face="Georgia" size="5em" color="#063c91">For each common skill_category, which industry has the highest penetration rate and what is the change of the common skill penetration rate over the period of time?</font></b>
+
+```{r read cleaned data}
+penetration <- read_excel(here::here('data/3_skill_penetration.xlsx'), sheet=4) 
+
+```
+
+```{r data cleaning}
+penetration_wide <- penetration %>% 
+  select(-isic_section_index) %>%
+  pivot_wider(names_from = year, 
+              values_from = skill_group_penetration_rate) %>% 
+  rename(penetration_rate_2015 = "2015", penetration_rate_2016 = "2016", 
+         penetration_rate_2017 = "2017", penetration_rate_2018 = "2018", 
+         penetration_rate_2019 = "2019") %>% 
+  mutate(penetration_rate_2015 = as.numeric((unlist(penetration_rate_2015))), 
+         penetration_rate_2016 = as.numeric((unlist(penetration_rate_2016))), 
+         penetration_rate_2017 = as.numeric((unlist(penetration_rate_2017))), 
+         penetration_rate_2018 = as.numeric((unlist(penetration_rate_2018))), 
+         penetration_rate_2019 = as.numeric((unlist(penetration_rate_2019)))
+         )
+
+
+```
+
+
+
+
+
+```{r tidy data}
+penetration_tidy <- penetration_wide %>% 
+  rename("2015" = penetration_rate_2015, 
+         "2016" = penetration_rate_2016, 
+         "2017" = penetration_rate_2017, 
+         "2018" = penetration_rate_2018, 
+         "2019" = penetration_rate_2019) %>% 
+  pivot_longer(cols = "2015":"2019", 
+               names_to = "year", 
+               values_to = "penetration_rate")
+```
+```{r}
+Q3_dat_total <- penetration_tidy %>%
+  group_by(year, skill_group_category) %>% 
+  slice_max(penetration_rate,n=1) %>%
+  arrange(skill_group_category, year)
+```
+
+
+
+### The highest penetration rate for different industry: Table
+
+```{r Q3tab}
+ Q3_dat_total %>% 
+  group_by(skill_group_category) %>%
+  slice_max(penetration_rate, n=1) %>% 
+  arrange(desc(penetration_rate)) %>% 
+  select(-penetration_rate,-year) %>% 
+  column_to_rownames("skill_group_category") %>%
+  kable(caption = "Top Industry by Penetration Rate for Each Skill Category")%>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), latex_options = "hold_position")
+
+```
+
+### Chart
+
+```{r Q3fig2, fig.width=12, fig.cap="The penetration rate for different industry"}
+#comparing penetrations for different industries in a year
+
+
+Q3_dat_fig_2 <- Q3_dat_total %>% 
+  ggplot(aes(x = reorder(industry_name, penetration_rate), 
+             y = penetration_rate, 
+             fill = industry_name)) +
+  geom_col() + 
+  theme_bw() + 
+  xlab("Industry section") + 
+  ylab("Peneration rate") + 
+  scale_y_continuous(breaks=seq(0, 0.3, 0.05)) + 
+  facet_wrap(~year, , scales = "free_y",
+             ncol = 1, 
+             strip.position = "right") 
+
+Q3_dat_fig_2 <- ggplotly(Q3_dat_fig_2)
+
+Q3_dat_fig_2[['x']][['layout']][['annotations']][[2]][['x']] = -0.05 
+Q3_dat_fig_2[['x']][['layout']][['annotations']][[1]][['y']] = -0.05
+Q3_dat_fig_2 %>% layout(margin = list(l = 75)) 
+```
+
+
+### The change of the common skill penetration rate
+
+```{r Q3fig1, fig.width=12, fig.cap="Change for skill peneration rate"}
+Q3_dat_fig_1 <- Q3_dat_total %>% ggplot(aes(x = year, 
+                                            y = penetration_rate, 
+                                            color = skill_group_category, 
+                                            group = skill_group_category)) + 
+  geom_point() + 
+  geom_line() + 
+  xlab("Year") + 
+  ylab("Skill peneration rate") +
+  theme_bw()+
+  labs(title = "Change for skill peneration rate") + 
+  scale_y_continuous(breaks=seq(0, 0.29, 0.02)) 
+
+ ggplotly(Q3_dat_fig_1)
+ 
+ #The penetration rate remains more or less the same except for Specialised Industry which increases in 2017 and is back to normal afterwards.
+```
+
+
+
+Regions: Industry Sections{data-navmenu="Section" data-orientation=columns }
+===================================== 
+
+Column 
+-----------------------------------------------------------------------
+
+### Analysis
+
+**Find the industry_section that is best to each region/continent.** 
+
+*  ***East Asia & Pacific***,  ***North America*** and ***Europe & Central Asia*** have been growing in terms of employment with ***Financial and insurance activities*** being the most significant employer.
+
+* Industries in  ***South Asia*** and  ***Latin America & Caribbean*** had only contraction, with industries under the section ***Manufacturing*** and ***Mining and quarrying*** being the least affected. In ***Sub-Saharan Africa*** other than ***Manufacturing*** all other industries have been declining in terms of employment.
+
+* ***Information and communication*** has been contracting in Sub-Saharan Africa,	Latin America & Caribbean, Middle East & North Africa	and South Asia which otherwise has a tremendous scope in ***North America***.
+
+* ***North America***, ***East Asia & Pacific***,  and ***Europe & Central Asia*** are the regions where all industries upgraded.
+
+* ***North America*** has been the leader in all Financial and insurance activities,	
+Information and communication, Professional scientific and technical activities, Manufacturing whose biggest competitor is ***East Asia & Pacific***.
+
+* ***Mining and quarrying***, however, retains a strong position in **Middle East & North Africa**.
+
+* [Industry Sections]
+
+* [Industries]
+
+
+Column {.tabset data-width=700}
+-----------------------------------------------------------------------
+<b><font face="Georgia" size="5em" color="#063c91">Overall analysis of growth rate, income group, industry section for each region/continent.</font></b>
+
+```{r 6_read-data,include=FALSE}
+growth <- read_excel(here::here('data/456_employment_growth.xlsx'), sheet=4)
+
+```
+
+```{r 6_clean_data,include=FALSE}
+growth_tidy <- growth %>% 
+  pivot_longer(cols = 9:13,
+               names_to = "year",
+               values_to = "growth_rate") %>% 
+  separate(year,into=c("temp1","temp2","year"),sep = "_") %>% 
+  select(-c(temp1,temp2))
+
+  
+```
+
+### Industry Sections: Highest and Lowest Average Growth Rate： Table1
+
+```{r Q4-part1}
+growth_tidy %>% 
+  group_by(wb_region,isic_section_name) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  arrange(wb_region,desc(Avg_growth_rate)) %>% 
+  slice_max(Avg_growth_rate,n = 1) %>%
+  arrange(-Avg_growth_rate) %>% 
+  rename(Region = wb_region,
+         Industry_section = isic_section_name) %>%  
+  arrange(Region, -Avg_growth_rate) %>%
+  kable(caption = "Industry Sections: Highest Average Growth Rate") %>% 
+   kable_styling(bootstrap_options = c("basic","striped,hover")) 
+```
+
+```{r Q4-part2}
+growth_tidy %>% 
+  group_by(wb_region,isic_section_name) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  arrange(wb_region,desc(Avg_growth_rate)) %>% 
+  slice_min(Avg_growth_rate,n = 1) %>%
+  arrange(-Avg_growth_rate) %>% 
+  rename(Region = wb_region,
+         Industry_section = isic_section_name) %>%  
+  kable(caption = "Industry Sections: Lowest Average Growth Rate") %>% 
+   kable_styling(bootstrap_options = c("basic","striped,hover")) 
+
+```
+### Table2
+```{r Q4-part3}
+growth_tidy %>% 
+  group_by(isic_section_name, wb_region) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  ungroup() %>%
+  group_by(isic_section_name) %>% 
+  slice_max(Avg_growth_rate,n = 1) %>%
+  arrange(wb_region, -Avg_growth_rate) %>%
+  rename(Region = wb_region,
+         Industry_Section = isic_section_name) %>%  
+  kable(caption = "Region: Industry Sections") %>% 
+   kable_styling(bootstrap_options = c("basic","striped,hover")) 
+```
+
+
+### Industry Sections: Region
+```{r Q4-graph2,ehco = FALSE,fig.width=15,fig.height=10,fig.cap="Industry Sections: Region "}
+growth_tidy %>% 
+  group_by(wb_region,isic_section_name) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  arrange(wb_region,desc(Avg_growth_rate)) %>% 
+  mutate(isic_section1 = reorder_within(isic_section_name,Avg_growth_rate,wb_region)) %>% 
+  ggplot(aes(Avg_growth_rate,
+             isic_section1,
+             fill = isic_section_name)) +
+  geom_col() +
+  geom_text(aes(label = Avg_growth_rate)) +
+  scale_y_reordered() +
+  xlab("Average Growth Rate") +
+  ylab("Indutry Section type") +
+  facet_wrap(~wb_region,ncol = 2,scales = "free")
+
+```
+
+### Region: Industry Sections
+```{r Q4-graph1, fig.cap="Region: Industry Sections"}
+growth_tidy %>% 
+  group_by(isic_section_name, wb_region) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3))  %>% 
+  ggplot(aes(Avg_growth_rate,
+            reorder(wb_region,Avg_growth_rate),
+             fill = wb_region)) +
+  geom_col() +
+  geom_text(aes(label = wb_region, alpha= 0), label.size = 0.02) +
+  scale_y_reordered() +
+  xlab("Average Growth Rate") +
+  ylab("Region") +
+  facet_wrap(~isic_section_name,ncol = 2,scales = "free") +
+  theme(legend.position = "none", axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
+  coord_cartesian(xlim = c(-0.040,0.03))
+
+```
+
+
+Industry Sections {data-navmenu="Section" data-orientation=columns .storyboard}
+===================================== 
+
+### Industries in each section
+
+
+```{r reading_data}
+
+skills_raw <- read_excel(here::here('data/1_skills.xlsx'), sheet=4)
+penetration_raw <- read_excel(here::here('data/3_skill_penetration.xlsx'), sheet=4)
+emp_growth_raw <- read_excel(here::here('data/456_employment_growth.xlsx'), sheet=4)
+
+
+```
+```{r}
+# tidy emp_growth_raw
+temp <- emp_growth_raw %>% select(starts_with("growth")) %>% names()
+emp_growth_raw_long <- emp_growth_raw %>%
+                          pivot_longer(cols = all_of(temp), 
+                                       names_to = "year", 
+                                       values_to = "growth_rate") %>%
+                      separate(year, into = c("temp1","temp2","year"), convert = TRUE) %>%
+                      select(-starts_with("temp"))
+```
+```{r}
+#joining skills and penetration data
+
+skill_penetration_common <- skills_raw %>%
+                            inner_join(penetration_raw,
+                                       by=c("year"="year",
+                                          "isic_section_index"="isic_section_index",
+                                       "isic_section_name"="isic_section_name",
+                                       "skill_group_category"="skill_group_category",
+                                       "skill_group_name"="skill_group_name",
+                                       "industry_name"="industry_name")
+                                       ) %>%
+                            select(-isic_section_index)
+```
+
+```{r eval=FALSE}
+#some summaries
+unique(skill_penetration_common$year)
+unique(skill_penetration_common$isic_section_name)
+unique(skill_penetration_common$skill_group_category)
+```
+```{r indcount, fig.cap="Industry Count within each Section"}
+
+industry_info <- skill_penetration_common %>%
+  select(isic_section_name,industry_name) %>%
+  group_by(isic_section_name) %>% count(industry_name) 
+
+industries_sections <- unique(skill_penetration_common$isic_section_name)
+
+industries <- industry_info %>%
+  pivot_wider(id_cols= c(isic_section_name, industry_name),
+              names_from = isic_section_name, 
+              values_from = n)
+
+industry_info %>%
+  select(isic_section_name,industry_name) %>%
+ count(isic_section_name) %>%
+  ggplot()+
+  geom_col(aes(x=reorder(isic_section_name, n),
+               y=n,
+               fill = isic_section_name))+
+  labs(title = "Industry Count within each Section", 
+       y ="Number of Industries", x= "Industry Section") +
+  coord_flip()+
+  theme(legend.position = "none")
+```
+
+
+### Growth Rate: Industries
+```{r Q5graph1,fig.width=15,fig.height=10,fig.cap="Avg. growth of an industry within a region w.r.t best industry section"}
+ growth_tidy %>%
+  rename(region = wb_region,
+         ind_sect = isic_section_name) %>% 
+  dplyr::filter((region == "North America" & ind_sect == "Financial and insurance activities") |
+    (region == "East Asia & Pacific" & ind_sect == "Financial and insurance activities") |
+           (region == "Europe & Central Asia" & ind_sect == "Financial and insurance activities") |
+           (region == "Latin America & Caribbean" & ind_sect == "Financial and insurance activities") |
+           (region == "Middle East & North Africa" &  ind_sect == "Mining and quarrying") |
+           (region == "Sub-Saharan Africa" &  ind_sect == "Manufacturing") |
+           (region == "South Asia" &  ind_sect == "Mining and quarrying") |
+           (region == "South Asia" &  ind_sect == "Manufacturing")) %>% 
+  group_by(region,ind_sect,industry_name) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  mutate(ind_name = reorder_within(industry_name,Avg_growth_rate,region)) %>% 
+  ggplot(aes(Avg_growth_rate,
+             ind_name,
+             fill = industry_name)) +
+  geom_col() + 
+  geom_text(aes(label = Avg_growth_rate)) +
+  scale_y_reordered() +
+  xlab("Average Growth Rate") +
+  ylab("Industry Name") +
+  facet_wrap(region~ind_sect, ncol = 2,scales = "free")+
+  theme(legend.position = "none")
+```
+
+### Time Series: Aggregated Growth Rate
+```{r Q5timeseries,echo=FALSE,fig.width=8,fig.cap="Time Series: Aggregated Growth Rate"}
+q5 <- growth_tidy %>%
+  rename(region = wb_region,
+         ind_sect = isic_section_name) %>% 
+  
+  dplyr::filter((region == "East Asia & Pacific" & ind_sect == "Financial and insurance activities") |
+           (region == "Europe & Central Asia" & ind_sect == "Financial and insurance activities") |
+           (region == "Latin America & Caribbean" & ind_sect == "Financial and insurance activities") |
+           (region == "Middle East & North Africa" &  ind_sect == "Mining and quarrying") |
+           (region == "North America" & ind_sect == "Financial and insurance activities") |
+           (region == "Sub-Saharan Africa" &  ind_sect == "Manufacturing") |
+           (region == "South Asia" &  ind_sect == "Mining and quarrying") |
+           (region == "South Asia" &  ind_sect == "Manufacturing")) %>% 
+  group_by(region,ind_sect,industry_name,year) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+   ungroup() 
+
+q5function <- function(ind_sect){
+  q5 %>% 
+  filter(ind_sect == ind_sect) %>%
+           pivot_wider(id_cols = c(region,ind_sect, industry_name),
+                       names_from = year,
+                       values_from = Avg_growth_rate) %>%
+  unnest(4:8) %>%
+  mutate(`2016`= `2015`+`2016`,
+         `2017`= `2015`+`2016`+`2017`,
+         `2018`= `2015`+`2016`+`2017`+`2018`,
+         `2019`= `2015`+`2016`+`2017`+`2018`+`2019`)
+}
+
+q5ind <- c("Financial and insurance activities", "Mining and quarrying", "Manufacturing")
+q5 <- map_dfr(q5ind, ~{q5function(.x)}) %>%
+  pivot_longer(cols = c(4:8),
+               names_to = "year",
+               values_to = "Avg_growth_rate") %>%
+  arrange(region,ind_sect, industry_name, year) %>%
+  distinct()
+
+ 
+
+q5_wide1 <- q5 %>%
+  filter( (region == "Middle East & North Africa" &  ind_sect == "Mining and quarrying")|
+            (region == "South Asia" &  ind_sect == "Mining and quarrying")) %>%
+  select(region, year,Avg_growth_rate, industry_name) %>%
+           pivot_wider(id_cols = c(year, industry_name),
+                       names_from = region,
+                       values_from = Avg_growth_rate) %>%
+  unnest(2:3) %>%
+  group_by(year) %>%
+  mutate(
+    `Middle East & North Africa` = mean(`Middle East & North Africa`),
+         `South Asia` = mean(`South Asia`))
+
+q5_wide2 <- q5 %>%
+  filter(region %in% c("North America", 
+                       "East Asia & Pacific", 
+                       "Europe & Central Asia",
+                       "Latin America & Caribbean")) %>%
+  select(region, year,Avg_growth_rate, industry_name) %>%
+           pivot_wider(id_cols = c(year, industry_name),
+                       names_from = region,
+                       values_from = Avg_growth_rate) %>%
+  unnest(2:5) %>%
+  group_by(year) %>%
+  mutate(`North America` = mean(`North America`),
+         `East Asia & Pacific` = mean(`East Asia & Pacific`),
+         `Europe & Central Asia` = mean(`Europe & Central Asia`),
+         `Latin America & Caribbean` = mean(`Latin America & Caribbean`))
+
+q5_wide3 <- q5 %>%
+  filter((region == "Sub-Saharan Africa" &  ind_sect == "Manufacturing") |
+           (region == "South Asia" &  ind_sect == "Manufacturing")) %>%
+  select(region, year,Avg_growth_rate, industry_name) %>%
+           pivot_wider(id_cols = c(year, industry_name),
+                       names_from = region,
+                       values_from = Avg_growth_rate) %>%
+  unnest(2:3) %>%
+  group_by(year) %>%
+  mutate(
+    `Sub-Saharan Africa` = mean(`Sub-Saharan Africa`),
+         `South Asia` = mean(`South Asia`))
+
+
+
+q5_graph1 <- ts(q5_wide1 %>%
+                  select(3:4),
+                  start = 2015, 
+                  end = 2019,
+                  frequency = 1)
+q5_graph2 <- ts(q5_wide2 %>%
+                  select(3:6),
+                  start = 2015, 
+                  end = 2019,
+                  frequency = 1)
+q5_graph3 <- ts(q5_wide3 %>%
+                  select(3:4),
+                  start = 2015, 
+                  end = 2019,
+                  frequency = 1)
+
+q5_graph <- cbind(q5_graph2,q5_graph1,q5_graph3) 
+
+  
+
+
+dygraph(q5_graph1, main = NULL, xlab = NULL, ylab = NULL, periodicity = NULL,
+  group = NULL, elementId = NULL, width = NULL, height = NULL)%>% 
+  dyLegend(show = "always", hideOnMouseOut = FALSE)%>%
+  dyAxis("y", label = "Growth Rate: Mining and Quarrying", valueRange = c(-0.2, 0.2)) %>%
+  dyOptions(axisLineWidth = 1.5, fillGraph = FALSE, drawGrid = FALSE)
+
+dygraph(q5_graph2, main = NULL, xlab = NULL, ylab = NULL, periodicity = NULL,
+  group = NULL, elementId = NULL, width = NULL, height = NULL)%>% 
+  dyLegend(show = "always", hideOnMouseOut = FALSE)%>%
+  dyAxis("y", label = "Growth Rate: Financial and Industrial Activities", valueRange = c(-0.2, 0.2)) %>%
+  dyOptions(axisLineWidth = 1.5, fillGraph = FALSE, drawGrid = FALSE)
+
+dygraph(q5_graph3, main = NULL, xlab = NULL, ylab = NULL, periodicity = NULL,
+  group = NULL, elementId = NULL, width = NULL, height = NULL)%>% 
+  dyLegend(show = "always", hideOnMouseOut = FALSE)%>%
+  dyAxis("y", label = "Growth Rate: Manufacturing", valueRange = c(-0.2, 0.2)) %>%
+  dyOptions(axisLineWidth = 1.5, fillGraph = FALSE, drawGrid = FALSE)
+```
+
+### Chart3
+```{r Q5graph2,fig.cap="Time Series: Industry Growth Rate"}
+q5_avg <- q5 %>% 
+  ggplot(aes(as.numeric(year),
+             Avg_growth_rate,
+             color = industry_name,
+             text = industry_name)) +
+  geom_point() +
+  geom_line() +
+  scale_x_continuous() +
+  xlab("Year") +
+  ylab("Average Growth Rate") +
+  facet_wrap(region ~ ind_sect, ncol = 3) 
+
+ggplotly(q5_avg) %>%
+hide_legend()
+```
+
+Skills: Ranks {data-navmenu="Section" data-orientation=columns .storyboard}
+===================================== 
+
+
+### Heat Map: Industry vs Skill
+```{r skillindpresence, fig.cap="skill categories in industry sections"}
+q5pskill1 <- skill_penetration_common %>% ggplot()+
+  geom_count(mapping = aes(x=isic_section_name,
+                           y=skill_group_category))+
+  theme(axis.text.x = element_text(angle = 60), 
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank())
+
+skills_info <- skill_penetration_common %>% 
+  select(skill_group_category,skill_group_name) %>%
+  group_by(skill_group_category) %>% 
+  count(skill_group_name)
+
+skill_groups <- unique(skill_penetration_common$skill_group_category)
+
+# skills <- skills_info %>%
+#   pivot_wider(id_cols= c(skill_group_category, skill_group_name), 
+#               names_from = skill_group_category, 
+#               values_from = skill_group_name)
+
+
+
+q5pskill2 <- skills_info %>%
+  select(skill_group_category,skill_group_name) %>%
+  count(skill_group_category) %>%
+  ggplot()+
+  geom_col(aes(x=reorder(skill_group_category, n),
+               y=n,
+               fill=skill_group_category))+
+  labs(title = "Skill Count within each Skill Category")+
+  coord_flip()+
+  theme(axis.title.y = element_blank(),
+        legend.position = "none")
+
+q5pskill1
+
+```
+
+### Skill Count
+
+```{r}
+q5pskill2
+```
+
+### Networks: Industry Sections and Skill Groups: Chart1
+
+```{r networkskillcatindsec, fig.cap="Network: Industry Section and Skill Category"}
+skillrankavgsection <- skill_penetration_common %>%
+  group_by(isic_section_name, skill_group_category) %>%
+  summarise(avg_skill_group_rank=round(mean(skill_group_rank),0)) %>%
+  arrange(isic_section_name, avg_skill_group_rank) %>%
+  ungroup() %>%
+  mutate(wt = (10-avg_skill_group_rank+1)/10)
+
+nodesind <- data.frame(nodes = unique(skillrankavgsection$isic_section_name), category= "industry")
+nodesskill <- data.frame(nodes = unique(skillrankavgsection$skill_group_category), category= "skill")
+
+nodes <- nodesind%>%full_join(nodesskill)
+
+
+
+skillrankavgsection <- skillrankavgsection[,c(1,2,4,3,2)]
+
+
+networkskillindsec <-   graph_from_data_frame(d=skillrankavgsection,directed = TRUE, vertices = nodes)
+
+
+a <- grid::arrow(type = "closed", length = unit(0.2,"inches"))
+set.seed(123)
+networkskillindsec %>%
+  ggraph(layout = "stress") +
+  geom_edge_link2(aes(edge_alpha = wt,edge_width = wt,edge_color = skill_group_category),arrow = a) +
+  geom_node_point(aes(size = 2, colour =category) )+
+  geom_node_text(aes(label = name), repel = TRUE,  point.padding = unit(0.15, "lines")) +
+theme_void() 
+
+
+```
+
+### Network: Example
+
+```{r networkskillind}
+skillrankavgyr <- skill_penetration_common %>%
+  group_by(isic_section_name, industry_name, skill_group_category, skill_group_name) %>%
+  summarise(avg_skill_group_rank=round(mean(skill_group_rank),0)) %>%
+  arrange(industry_name, avg_skill_group_rank) %>%
+  ungroup() %>%
+  mutate(wt = (10-avg_skill_group_rank+1)/10)
+
+nodesind <- data.frame(nodes = unique(skillrankavgyr$industry_name), category= "industry")
+nodesskill <- data.frame(nodes = unique(skillrankavgyr$skill_group_name), category= "skill")
+
+nodesindskill <- nodesind%>%
+  full_join(nodesskill)
+
+nodesindskill <- nodesindskill[!duplicated(nodesindskill$nodes),]
+skillrankavgyr <- skillrankavgyr[,c(2,4,6,1,3,5)]
+
+```
+```{r networkskillfunction}
+
+
+networkskills <- function(x){
+
+selskillind <- skillrankavgyr %>% 
+  filter(isic_section_name == x)
+
+selnodes <- nodesindskill %>% 
+  filter(nodes %in% selskillind$industry_name| nodes %in% selskillind$skill_group_name)
+
+networkskillind <-   graph_from_data_frame(d=selskillind,directed = TRUE, vertices = selnodes)
+
+
+a <- grid::arrow(type = "closed", length = unit(0.15,"inches"))
+networkskillind %>%
+  ggraph(layout = "stress") +
+  geom_edge_link2(aes(edge_alpha = wt, edge_color = skill_group_category),arrow = a) +
+  geom_node_point(aes(size = 2, colour = category)) +
+  geom_node_text(aes(label = name), repel = TRUE, point.padding = unit(0.15, "lines")) +
+theme_void()
+
+}
+
+```
+
+```{r netmining, fig.cap="Mining and quarrying"}
+networkskills("Mining and quarrying")
+```
+
+
+```{r netfinance, fig.cap="Financial and insurance activities"}
+networkskills("Financial and insurance activities")
+```
+
+Metrics: Relationships {data-navmenu="Section" data-orientation=columns .storyboard}
+===================================== 
+
+### Insight
+
+There exists no relationship between skill group rank and skill group penetration rate and for some industries, penetration rate is higher where there is no growth or little growth, thus suggesting that employees incorporate more skills. No relationship is determined.
+
+
+
+### Relationship between Skill Group Rank, Industry Growth Rate and Skill Group Pentration Rate: Chart1
+```{r penskill, fig.cap="Skill Group Rank vs Skill Group Pentration Rate"}
+#relationship between skill rank and penetration rate, whipsawing because some skills are common to several industries. rank is independent of penetration rate
+skill_penetration_common %>%
+  group_by(year) %>%
+  ggplot() +
+  geom_line(mapping = aes(x=skill_group_rank,y=skill_group_penetration_rate, colour=industry_name))+
+    geom_smooth(mapping = aes(x=skill_group_rank,y=skill_group_penetration_rate, colour=industry_name))+
+  theme(legend.position = "none") +
+  facet_wrap(~year) 
+
+```
+
+```{r}
+emp_growth_long <- emp_growth_raw_long %>%
+  group_by(isic_section_name, industry_name, wb_income, year) %>%
+  mutate(avg_gr_income = mean(growth_rate)) %>%
+  ungroup(isic_section_name, industry_name, wb_income, year)%>%
+  group_by(isic_section_name, industry_name,wb_region, year) %>%  
+  mutate(avg_gr_region = mean(growth_rate)) %>%
+  ungroup(isic_section_name, industry_name,wb_region, year) %>%  
+  group_by(isic_section_name, industry_name, year) %>%  
+  mutate(avg_gr_year = mean(growth_rate)) %>%
+  ungroup(isic_section_name, industry_name, year) 
+
+```
+
+### Chart2
+```{r growpen,fig.cap= "Industry Growth Rate and Skill Group Pentration Rate"}
+growth_penentration <- emp_growth_long %>%
+  select(year,isic_section_name, industry_name, avg_gr_year) %>%
+  distinct() %>%
+  right_join(penetration_raw) %>%
+  distinct()
+
+
+#penetration is higher where there is no growth or little growth incorporating more skills.
+growth_penentration %>%
+  ggplot() + 
+  geom_point(mapping=aes(x=skill_group_penetration_rate, 
+                         y=avg_gr_year)) +
+  theme(axis.text.x = element_text(angle = 45))
+  
+```
+
+
+
+Migration {data-navmenu="Section" data-orientation=columns .storyboard}
+===================================== 
+
+```{r ,eval=FALSE}
+#industries in each country
+country_info <- emp_growth_raw %>% 
+  select(country_name,wb_region ) %>%
+  count(country_name,wb_region ) %>%
+  arrange(wb_region, -n)
+
+```
+
+```{r readdata}
+
+country <- read_excel(here::here('data/public_use-talent-migration.xlsx'), sheet=4) %>%
+  select(2:4)
+
+country_migration <- read_excel(here::here('data/public_use-talent-migration.xlsx'), sheet=4)
+```
+
+### Migration: Table
+
+```{r }
+migrationave <- mguse %>% 
+  group_by(country_name) %>% 
+  summarise(average_migration_rate = mean(net_per_10K_migration_rate, na.rm = TRUE)) 
+
+migrationave %>%
+  slice_max(average_migration_rate , n=30) %>%
+  kable(caption = "Top Countries for Migration")
+```
+
+### Migration: Map
+
+```{r migmap, fig.cap="Map: Migration Rate of Countries"}
+
+migrationave <- migrationave %>%
+  right_join(country, by = c("country_name"="base_country_name")) %>%
+  distinct()
+
+
+world <-map_data("world")
+
+
+ggplot(world)+geom_polygon(mapping = aes(x = long, y = lat, group=group, fill = region)) +
+  geom_text_repel(data = migrationave,
+            mapping = aes(label = round(average_migration_rate,0), 
+                          x=base_long,
+                          y=base_lat),max.iter=10000) +
+  coord_map() +
+  theme_map() +
+  theme(legend.position = "none")
+
+
+  
+#value per 10000 have left or come to the country
+
+```
+
+### Networks: Migration 
+
+```{r}
+country_migration <- country_migration %>% 
+      rename(c("2015"= "net_per_10K_2015",
+           "2016"= "net_per_10K_2016",
+           "2017"= "net_per_10K_2017",
+           "2018"= "net_per_10K_2018",
+           "2019"= "net_per_10K_2019")) %>% 
+    pivot_longer(cols = 13:17,  
+               names_to = "year",            
+               values_to = "net_per_10K_migration_rate") 
+```
+
+```{r}
+country_migrationavg <- country_migration %>%
+  group_by(base_country_name,target_country_name) %>%
+  summarise(avgmigrate = round(mean(net_per_10K_migration_rate),2))
+country_migrationavg <- country_migrationavg[,c(2,1,3)]
+
+country_migrationavg <- country_migrationavg %>%
+  arrange(target_country_name,-avgmigrate)
+```
+
+
+
+```{r basemignet,fig.width=10,fig.height=10, fig.cap="Highest Migration Rate Selected: Base Country to Target Country"}
+basemig <- country_migrationavg %>%
+  group_by(base_country_name) %>%
+  slice_max(avgmigrate,n=1)
+basemig <- basemig[,c(2,1,3)]
+
+basemignet <-   graph_from_data_frame(d=basemig,directed = TRUE)
+
+a <- grid::arrow(type = "closed", length = unit(0.2,"inches"))
+basemignet %>%
+  ggraph(layout = "stress") +
+  geom_edge_link2(aes(edge_alpha = avgmigrate),arrow = a) +
+  geom_node_point(aes(size = 2, alpha=0.5) )+
+  geom_node_text(aes(label = name, alpha=0.5), repel = FALSE,  point.padding = unit(0.15, "lines")) +
+theme_void() 
+```
+
+### Australia
+
+```{r ,eval =FALSE}
+australia_avgmig <- country_migrationavg %>%
+  filter(target_country_name=="Australia") 
+australia_avgmig <- australia_avgmig[,c(2,1,3)]
+
+
+aus_mig_network <-   graph_from_data_frame(d=australia_avgmig,directed = TRUE)
+
+a <- grid::arrow(type = "closed", length = unit(0.2,"inches"))
+aus_mig_network %>%
+  ggraph(layout = "stress") +
+  geom_edge_link2(aes(edge_alpha = avgmigrate),arrow = a) +
+  geom_node_point(aes(size = 2) )+
+  geom_node_text(aes(label = name), repel = TRUE,  point.padding = unit(0.15, "lines")) +
+theme_void() 
+```
+
+Industries {data-navmenu="Section" data-orientation=columns .storyboard}
+===================================== 
+
+
+### the Avg. growth of the best industry within a country w.r.t its best industry section: Chart1
+
+```{r Q6-part1,echo=FALSE,fig.width=8,fig.height=10,fig.cap="Avg growth of the best industry within in a country w.r.t region"}
+ income_grps <- growth_tidy %>% 
+   rename(Income_group = wb_income,
+         country = country_name) %>% 
+  select(country,Income_group) %>% 
+  dplyr::distinct()
+
+q61graph <-  growth_tidy %>%
+  rename(region = wb_region,
+         ind_sect = isic_section_name,
+         ind_name = industry_name,
+         country = country_name) %>% 
+  filter((region == "East Asia & Pacific" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Europe & Central Asia" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Latin America & Caribbean" & ind_sect == "Financial and insurance activities" & ind_name == "Investment Banking") |
+           (region == "Middle East & North Africa" &  ind_sect == "Mining and quarrying" & ind_name == "Mining & Metals") |
+           (region == "North America" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Sub-Saharan Africa" &  ind_sect == "Manufacturing" & ind_name == "Renewables & Environment") |
+           (region == "South Asia" &  ind_sect == "Mining and quarrying" & ind_name == "Oil & Energy") |
+           (region == "South Asia" &  ind_sect == "Manufacturing" & ind_name == "Food Production")) %>% 
+  group_by(region,ind_sect,ind_name,country) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) %>% 
+  mutate(country1 = reorder_within(country,Avg_growth_rate,region)) %>%
+  left_join(income_grps) %>%  
+  ggplot(aes(Avg_growth_rate,
+             country1,
+             fill = country,
+             text = Income_group)) +
+  geom_col() +
+  geom_text(aes(label = Avg_growth_rate)) +
+  scale_y_reordered() +
+  ylab("Country") +
+  xlab("Average Growth rate") +
+  facet_wrap(region~ind_name, ncol = 2,scales = "free")
+  ggplotly(q61graph) %>%
+hide_legend()
+
+```
+
+### Trend of best industry within in a country w.r.t region: Chart2
+
+```{r Q6-part2,echo=FALSE,fig.width=8,fig.cap="Trend of best industry within in a country w.r.t region"}
+q6 <- growth_tidy %>%
+  rename(region = wb_region,
+         ind_sect = isic_section_name,
+         ind_name = industry_name,
+         country = country_name) %>% 
+  filter((region == "East Asia & Pacific" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Europe & Central Asia" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Latin America & Caribbean" & ind_sect == "Financial and insurance activities" & ind_name == "Investment Banking") |
+           (region == "Middle East & North Africa" &  ind_sect == "Mining and quarrying" & ind_name == "Mining & Metals") |
+           (region == "North America" & ind_sect == "Financial and insurance activities" & ind_name == "Venture Capital & Private Equity") |
+           (region == "Sub-Saharan Africa" &  ind_sect == "Manufacturing" & ind_name == "Renewables & Environment") |
+           (region == "South Asia" &  ind_sect == "Mining and quarrying" & ind_name == "Oil & Energy") |
+           (region == "South Asia" &  ind_sect == "Manufacturing" & ind_name == "Food Production")) %>% 
+  group_by(region,ind_sect,ind_name,country,year) %>% 
+  summarise(Avg_growth_rate = round(mean(growth_rate),3)) 
+
+
+q6ind <- c("Venture Capital & Private Equity",
+           "Investment Banking",
+           "Mining & Metals",
+           "Renewables & Environment",
+           "Oil & Energy",
+           "Food Production")
+
+q6function <- function(ind_name){
+  q6 %>% 
+  filter(ind_name == ind_name) %>%
+           pivot_wider(id_cols = c(region,ind_sect, ind_name, country),
+                       names_from = year,
+                       values_from = Avg_growth_rate) %>% 
+  unnest(5:9) %>%
+  mutate(`2016`= `2015`+`2016`,
+         `2017`= `2015`+`2016`+`2017`,
+         `2018`= `2015`+`2016`+`2017`+`2018`,
+         `2019`= `2015`+`2016`+`2017`+`2018`+`2019`)
+}
+
+q6 <- map_dfr(q6ind, ~{q6function(.x)}) %>%
+  pivot_longer(cols = c(5:9),
+               names_to = "year",
+               values_to = "Avg_growth_rate") %>%
+  arrange(region,ind_sect, ind_name,country, year) %>%
+  distinct()
+
+
+
+q6_graph <- q6 %>%
+  ggplot(aes(as.numeric(year),
+             Avg_growth_rate,
+             color = country,
+             text = ind_sect)) +
+  geom_point() +
+  geom_line() +
+  scale_x_continuous() +
+  xlab("Year") +
+  ylab("Average Growth Rate") +
+  facet_wrap(region ~ ind_name, nrow = 2) +
+  theme(legend.position = "none")
+  ggplotly(q6_graph)  %>%
+hide_legend()
+
+```
+
+
+
+### Insights
+
+**For each region, which country did the above found industry had had maximum growth? And, what is the income group of that nation?**
+
+
+* Mostly every region had a big top knot Country baving the max growth rate of an employee, whereas regions like ***South Asia*** and ***Sub-Saharan Africa*** had countries like ***Nepal*** and ***Zambia*** having the maximum growth rate even though coming under Low/Lower middle income categories.
+*  Though overall ***North America*** had the max growth of employee in the ***Venture Capital & Private Equity***, but when seen country wise, ***Luxembourg*** in ***Europe & Central Asia*** region had approximately double the growth than top country ***Canada*** .
+
+
+Conclusion
+===================================== 
+
+This analysis report harnesses the dynamic, fast-growing LinkedIn dataset, which covers more than 100 countries, to derive insights about the metrics: skills, industries and migration trends of this modern world. Linked profiles have data that is valid in real time as the members tend to keep their career profiles updated. This kind of data is unlikely to be reflected in government statistics.
+
+"LinkedIn data have unique strengths in that they enable new insights into the emerging digital sectors and skills, with near real-time updates that are unlikely to be reflected in government statistics. Certain tradable and knowledge-intensive sectors also have good coverage across income levels and geographic locations, which allows for global benchmarking. In this manner, it may from the outset serve as a complementary dataset to other government statistics. With the growing use of LinkedIn, these data can become increasingly relevant for developing countries around the globe. " [5](https://documents1.worldbank.org/curated/en/827991542143093021/pdf/World-Bank-Group-LinkedIn-Data-Insights-Jobs-Skills-and-Migration-Trends-Methodology-and-Validation-Results.pdf)
+
+The data provided by The LinkedIn-World Bank Digital Data for Development is a cleaned data set which only requires to be adjusted in the wider or longer format based on the analysis question. In this report a comprehensive analysis was done with respect to these metrics on the higher level of classification: the skill group categories, industry sections and the world bank classified regions to gain an overall knowledge about the shifts in the trends of these metrics. Each question section discussed the shifts in these metrics to bring forward this knowledge and specific details were listed in the tables. Some complex networks were plotted to have a visual representation of the relationship between the skills and the industries to understand the relevance of a skill to an industry. The growth of the industries was studied with respect to the changes in its member population. 
+
+Specialized Industry Skills have the highest rank across all industries and Business, Tech skills were found to be common across all industries and were ranked similarly. Industries were categorized depending their growth rates and were mapped to different regions. This mapping summarized that North America leaded in terms of employment in several industries including Financial and insurance activities, Information and communication, 
+Professional scientific and technical activities and Manufacturing and Financial and insurance activities was the highest. Again, the business skills and tech skills were highly ranked for this field. 
+
+The migration rates was studied which revealed that the United States is a popular migration destination from all over the world. In general, members possess a diverse set of skills and the common skills, business and tech skills, are applicable to all linked in members. This commonness compromises the rank of these skills. Hundreds of skills are be categorized into five skill categories. Undoubtedly, the specialized industry skills and tech skills have the higher rate which meet the requirements of industry development. Interestingly, with the advent of the era of big data and technology, the importance of many traditional skills has gradually declined, as shown in the decreasing penetration rate, which means that they are more replaceable in the industry and therefore no longer unique. However, these skills are basic and must be possessed in this modern era and other skills categories are industry specific additions.
+
+The LinkedIn data provides data that brings out the generalized patterns and individual characteristics of industries and LinkedIn members in the developed countries, especially in the tradable, technology, and digital sectors.. However, this dataset has a limitation that the population of the developing countries in non-tradable, non-digital is under-represented. 
+
+
+
+Data Source 
+===================================== 
+
+1) [The LinkedIn-World Bank Digital Data for Development:Industry Jobs and Skills Trends - About](https://linkedindata.worldbank.org/about)
+ 
+2) [The World Bank: Industry Skills Needs Dataset(3500 X 7), Skill Penetration Dataset(20780 X 7)](https://datacatalog.worldbank.org/dataset/skills-linkedin-data)
+
+3) [The World Bank: Talent Migration Dataset(Industry Migration-5295 X 13)](https://datacatalog.worldbank.org/dataset/talent-migration-linkedin-data)
+
+4) [The World Bank: Industry Employment Shifts Dataset(7335 X 13)](https://datacatalog.worldbank.org/dataset/employment-growth-linkedin-data)
+
+5) [The World Bank: World-Bank-Group-LinkedIn-Data-Insights-Jobs-Skills-and-Migration-Trends-Methodology-and-Validation-Results](https://documents1.worldbank.org/curated/en/827991542143093021/pdf/World-Bank-Group-LinkedIn-Data-Insights-Jobs-Skills-and-Migration-Trends-Methodology-and-Validation-Results.pdf)
+
+6) [The World Bank: Terms of Use for Datasets(CC BY 4.0)](https://www.worldbank.org/en/about/legal/terms-of-use-for-datasets)
+
+
+References
+===================================== 
+
+##### Country – countries with 100,000+ LinkedIn members. {-} 
+
+##### World Bank Region – countries as classified given the most recent 6 regional World Bank country categories. {-} 
+
+##### World Bank Income Group – countries are classified given the most recent World Bank country classification by GNI into 4 categories: Low Income, Lower Middle Income, Upper Middle Income, and High Income. {-} 
+
+##### Industry – Detailed economic activity defined through the LinkedIn industry classification (approximately ISIC Rev. 4 2 digit level), covering approximately 140 industries (industries may be excluded based on data quality considerations) which compose the six ISIC Rev. 4 tradable sectors (ISIC Index: B, C, K, J, M, R). Please see LinkedIn – ISIC industry mapping file https://datacatalog.worldbank.org/node/144635 {-} 
+
+##### ISIC Section – The LinkedIn industry taxonomy is mapped to ISIC Rev. 4 Sector (1 digit) categories. Data is limited to 6 tradable sectors (ISIC Index: B, C, K, J, M, R). Please see LinkedIn – ISIC industry mapping file. https://datacatalog.worldbank.org/node/144635 {-}
+###### Tradable and Knowledge-Intensive Sectors  –  Six knowledge-intensive and tradable sectors, using ISIC Rev. 4 classification, are: B-mining and quarrying; C-manufacturing; J-information and communication; K-financial and insurance activities; M-professional, scientific, and technical activities; and R-arts, entertainment and recreation. {-} 
+
+##### Skill Group – Skill groups categorize the 50,000 detailed individual skills into approximately 250 skills groups (some skill groups may be excluded based data quality considerations). Skill related metrics are presented at the skill group rather than detailed skill level. {-} 
+
+##### Industry Skills Needs – Captures the most-distinctive, most-represented skills of LinkedIn members working in a particular industry. Based on the skills section of the LinkedIn profile. It’s calculated using an adapted version of a text mining technique called Term Frequency - Inverse Document Frequency (TF-IDF). {-} 
+
+##### Skill Penetration – Measures the time trend of a skill across all occupations within an industry. Based on skill addition rates, and the number of times a particular skill appears in the top 30 skills added across all of the occupations within an industry. For example, if 3 of 30 skills for Data Scientists in the Information Services industry fall into the Artificial Intelligence skill group, Artificial Intelligence has a 10% penetration for Data Scientists in Information Services. These penetration rates are averaged across occupations to derive the industry averages reported. {-} 
+##### Migration Overview  – All the metrics are based on net migration (arrivals minus departures). These net migration figures are each normalized differently to enable fairer comparisons across samples. We calculate all on an annual basis, and report an average of the last three years. {-}
+###### Industry Migration – Industries gained and lost. Based on the industry associated with a member’s company at the time of migration. The net gain or loss of members from another country working in a given industry divided by the number of LinkedIn members working in that industry in the target (or selected) country, multiplied by 10,000. {-} 
+
+##### Industry Employment Shifts – Captures the transitions among industries over time by LinkedIn members as a proxy for industry employment growth. Based on the industries declared by the companies in a member’s work history. {-} 
+
